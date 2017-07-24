@@ -1,0 +1,16 @@
+<!--<md-button ng-click="refreshAnnotations()">Refresh</md-button>-->
+
+<md-content class="md-padding" ng-repeat="proposal in proposalsList">
+
+    <h3>Added by {{ proposal.creator.username}}</h3>
+    <div class='md-padding' layout="row">
+        <md-card flex="30" ng-repeat="image in proposal.images">
+            <div class="img-container square">
+                <img-box
+                    element="image"
+                    display-size="450"
+                    ng-click="showImageDialog($event, image.uid)">
+            </div>
+        </md-card>
+    </div>
+</md-content>

@@ -1,0 +1,196 @@
+<div layout="row" layout-offset="5">
+    <div flex="0"></div>
+    <div flex>
+        <div layout="row" style="height: 280px" layout-align="space-between">
+            <md-card flex="30" layout-gt-sm="column">
+                <md-tabs md-autoselect md-border-bottom md-dynamic-height>
+                    <md-tab label="Text">
+                        <form ng-submit="searchText()">
+                            <md-input-container>
+                                <label>Search query</label>
+                                <input type="text" ng-model="searchQuery" ng-model-options="{debounce: 500}"
+                                       ng-change="searchText()">
+                            </md-input-container>
+                        </form>
+                    </md-tab>
+                    <md-tab label="Image">
+                        <div layout="row" layout-align="space-around center">
+
+                            <div>
+                                <md-progress-circular md-mode="indeterminate"
+                                                      ng-if="is_searching"></md-progress-circular>
+                                <md-button class="md-fab md-primary" aria-label="Search" ng-click="searchImage()"
+                                           ng-disabled="current_selection.length<1 || is_searching"
+                                           ng-if="!is_searching">
+                                    <md-icon class="material-icons">search</md-icon>
+                                </md-button>
+                            </div>
+                            <div>
+                                <md-switch ng-model="showSideQuery" aria-label="Show query on the side">
+                                    Show query on the side
+                                </md-switch>
+                            </div>
+                        </div>
+                    </md-tab>
+                    <md-tab label="Detail">
+                        <div layout="row" layout-align="space-around center">
+
+                            <div flex="60">
+                                <!--<div ng-if="current_selection.length>0"
+                                     ng-click="showCropperDialog($event,current_selection[0])">
+                                    <div mr-image mr-src="getImageThumbnail(current_selection[0])"
+                                        mr-drawer="drawer" mr-selector="{enabled: False}"
+                                        mr-max-width="100"></div>
+                                </div>-->
+                                <md-button ng-if="current_selection.length>0" ng-click="showCropperDialog($event,current_selection[0].images[0])">
+                                    Select Image Region
+                                </md-button>
+                                <!--<img-box ng-if="current_selection.length>0"
+                                         element="current_selection[0].images[0]"
+                                         display-size="150"
+                                         ng-click="showCropperDialog($event,current_selection[0].images[0])">
+
+                                <img ng-if="current_selection.length>0"
+                                     ng-src="{{ getImageThumbnail(current_selection[0]) }}"
+                                     ng-click="showCropperDialog($event,current_selection[0])">
+                                     -->
+                            </div>
+                            <div flex="20">
+                                <md-progress-circular md-mode="indeterminate"
+                                                      ng-if="is_searching"></md-progress-circular>
+                                <md-button class="md-fab md-primary" aria-label="Search" ng-click="searchImageRegion()"
+                                           ng-disabled="current_selection.length!=1 || current_selection[0].images[0].box === undefined || is_searching"
+                                           ng-if="!is_searching">
+                                    <md-icon class="material-icons">search</md-icon>
+                                </md-button>
+                            </div>
+                        </div>
+                    </md-tab>
+                </md-tabs>
+                <div layout="column">
+                    <md-button ng-click="resetSelections()">Clear Selection</md-button>
+                    <div layout="row">
+
+                <md-button flex ng-if="isAuthenticated()" ng-click="addAnnotation()"
+                           ng-disabled="current_selection.length<2">
+                    Save as links
+                </md-button>
+                        <md-button flex ng-click="goToGraph()" ng-disabled="current_selection.length==0">To Graph</md-button>
+                        </div>
+
+                </div>
+            </md-card>
+            <md-card flex="30" style="overflow: auto;" class="md-padding">
+                <h2>Current selection</h2>
+                <md-list>
+                    <md-list-item class="md-2-line secondary-button-padding" ng-repeat="item in current_selection">
+                        <img ng-src="{{ getImageThumbnail(item) }}" ng-click="showImageDialog($event,result.images[0].uid)"
+                             class="md-avatar">
+                        <div class="md-list-item-text" layout="column">
+                            <h3>{{ item.author }}</h3>
+                            <p>{{ item.title }}</p>
+                        </div>
+                        <md-button ng-click="removeFromSelection(item, current_selection)"
+                                   class="md-icon-button md-primary"
+                                   aria-label="Remove">
+                            <md-icon aria-label="Remove element" class="material-icons">delete</md-icon>
+                        </md-button>
+                    </md-list-item>
+                </md-list>
+            </md-card>
+            <md-card flex="30" style="overflow: auto;" class="md-padding">
+                <h2>Negative selection</h2>
+                <md-list>
+                    <md-list-item class="md-2-line secondary-button-padding" ng-repeat="item in negative_selection">
+                        <img ng-src="{{ getImageThumbnail(item) }}" ng-click="showImageDialog($event,result.images[0].uid)"
+                             class="md-avatar">
+                        <div class="md-list-item-text" layout="column">
+                            <h3>{{ item.author }}</h3>
+                            <p>{{ item.title }}</p>
+                        </div>
+                        <md-button ng-click="removeFromSelection(item, negative_selection)"
+                                   class="md-icon-button md-primary"
+                                   aria-label="Remove">
+                            <md-icon aria-label="Remove element" class="material-icons">delete</md-icon>
+                        </md-button>
+                    </md-list-item>
+                </md-list>
+            </md-card>
+        </div>
+        <div style="height: 25px"></div>
+        <div layout="row">
+            <div flex="25" ng-if="showSideQuery">
+                <div hl-sticky="">
+                    <md-tabs md-dynamic-height md-autoselect>
+                        <md-tab ng-repeat="item in current_selection" label="#{{$index}}">
+                            <div>
+                                <md-card>
+                                    <div class="img-container">
+                                        <img-box
+                                                element="item.images[0]"
+                                                display-size="450"
+                                                ng-click="showImageDialog($event, item.images[0].uid)"/>
+                                    </div>
+
+                                    <!--class="md-card-image"-->
+                                    <md-card-content>
+                                        <h3>{{ item.author }}</h3>
+                                        <p>{{ item.title }}</p>
+                                    </md-card-content>
+
+                                </md-card>
+                            </div>
+                        </md-tab>
+                    </md-tabs>
+
+                </div>
+            </div>
+            <div flex>
+                <div class='results' layout="row" layout-wrap layout-align="space-between" infinite-scroll='showMoreResults()'>
+                    <!--<md-grid-list md-cols="4"
+                          md-gutter="12px" md-row-height="1:1">
+
+                <md-grid-title ng-repeat="result in results">
+                    <img ng-src="{{ result.image_url }}!Blog.jpg">
+                    <md-grid-tile-footer>{{ result.metadata.title }}, {{ result.metadata.author }}</md-grid-tile-footer>
+                </md-grid-title>
+
+            </md-grid-list>-->
+
+                    <md-card flex="30" ng-repeat="result in results | limitTo: resultsDisplayed">
+                        <div class="img-container">
+                            <img-box element="result.images[0]"
+                                     display-size="450"
+                                     ng-click="showImageDialog($event, result.images[0].uid)"/>
+                        </div>
+
+                        <!--class="md-card-image"-->
+                        <md-card-content>
+                            <h3>{{ result.author }}</h3>
+                            <p>{{ result.title }}</p>
+                            <md-button class="md-icon-button" ng-click="addToSelection(result, current_selection)"
+                                       ng-disabled="isInSelection(result, current_selection) || isInSelection(result, negative_selection)">
+                                <md-icon aria-label="Add to selection" class="material-icons">add_circle</md-icon>
+                            </md-button>
+                            <md-button class="md-icon-button" ng-click="addToSelection(result, negative_selection)"
+                                       ng-disabled="isInSelection(result, current_selection) || isInSelection(result, negative_selection)">
+                                <md-icon aria-label="Add to negative selection" class="material-icons">remove_circle
+                                </md-icon>
+                            </md-button>
+                            <md-button class="md-icon-button"
+                                       ng-click="removeFromSelection(result, negative_selection); removeFromSelection(result, current_selection);"
+                                       ng-disabled="!(isInSelection(result, current_selection) || isInSelection(result, negative_selection))">
+                                <md-icon aria-label="Remove from any selection" class="material-icons">cancel</md-icon>
+                            </md-button>
+
+                            <a ng-href="{{ result.related }}" target="_blank"><img ng-src="{{result.logo}}" width="25%"/></a>
+
+                        </md-card-content>
+
+                    </md-card>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div flex="0"></div>
+</div>

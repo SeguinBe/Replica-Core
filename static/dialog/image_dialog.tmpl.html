@@ -1,0 +1,54 @@
+<md-dialog aria-label="" ng-cloak>
+    <form>
+        <md-dialog-content>
+            <div class="md-dialog-content">
+                <div layout-gt-sm="row">
+                    <div flex="80">
+                        <h1>{{ element.cho.author }}</h1>
+                        <h2>{{ element.cho.title }}</h2>
+                    </div>
+                    <div>
+                        <md-button ui-sref="search({q: element.cho.uid})"
+                                   class="md-icon-button md-primary"
+                                   aria-label="Search" target="_blank">
+                            <md-icon aria-label="Search from element" class="material-icons">search</md-icon>
+                        </md-button>
+                    </div>
+
+                </div>
+
+                <div layout-gt-sm="row">
+                    <div flex="40">
+                        <p>
+                            id : {{ element.uid }}
+                        </p>
+
+                        <h3>Linked with</h3>
+                        <div layout="row" layout-wrap layout-align="space-between">
+                            <md-card flex="25" ng-repeat="img_l in element.links">
+                                <div class="img-container">
+                                    <img-box element="img_l.image"
+                                             display-size="450"
+                                             ng-click="showImageDialog($event, img_l.image.uid)"/>
+                                </div>
+                                <md-card-content>{{ img_l.type }}</md-card-content>
+                            </md-card>
+                        </div>
+
+                        <md-card flex="80" flex-offset="10" class="md-padding">
+                            <md-list>
+                                <md-list-item ng-repeat="m in element.cho.raw_metadata">
+                                    <p> {{ m.label }} </p>
+                                    <div class="text-right">{{ m.value }}</div>
+                                </md-list-item>
+                            </md-list>
+                        </md-card>
+                    </div>
+                    <div class="image-container" flex="60">
+                        <img ng-src="{{ getImage(element) }}"/>
+                    </div>
+                </div>
+            </div>
+        </md-dialog-content>
+    </form>
+</md-dialog>

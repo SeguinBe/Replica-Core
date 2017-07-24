@@ -1,0 +1,69 @@
+
+images-graph {
+    height: auto;
+    width: auto;
+}
+
+images-graph svg {
+    background-color: black;
+}
+
+
+.links line {
+    stroke: #cbccc9;
+    stroke-opacity: 0.8;
+    stroke-width: 2;
+}
+
+.links line.POSITIVE {
+    stroke: #0a74cc;
+}
+
+.links line.NEGATIVE {
+    stroke: #cc0010;
+}
+
+.links line.PROPOSAL {
+    stroke: #4bcca0;
+}
+
+.img-container {
+    width: 100%;
+    padding-bottom: 100%;
+    position: relative;
+}
+
+.img-container img {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+}
+
+.img-container svg {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+}
+
+.logo {
+    height: inherit;
+}
+
+.square {
+    width: 100%;
+    padding-bottom: 100%;
+}

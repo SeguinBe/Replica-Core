@@ -1,0 +1,29 @@
+
+<div layout="row">
+    <div flex="80">
+        <images-graph data="data" selection="selection" width="100%" height="100%"></images-graph>
+    </div>
+    <div flex>
+        <div layout="column">
+        <md-button flex ng-click="refreshData()">
+            Refresh Graph
+        </md-button>
+            <md-card flex ng-repeat="item in selection.elements">
+                        <div class="img-container">
+                            <img-box element="item"
+                                     display-size="450"
+                                     ng-click="showImageDialog($event, item.uid)"/>
+                        </div>
+
+                        <!--class="md-card-image"-->
+                        <md-card-content>
+                        <md-button class="md-icon-button"
+                                   ng-click="selection.removeFromSelection(item, selection)">
+                            <md-icon aria-label="Remove from selection" class="material-icons">cancel</md-icon>
+                        </md-button>
+                        </md-card-content>
+
+                    </md-card>
+        </div>
+    </div>
+</div>

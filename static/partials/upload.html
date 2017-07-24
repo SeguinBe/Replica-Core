@@ -1,0 +1,40 @@
+<md-content class="md-padding">
+    <md-card flex="70" flex-offset="15" layout-gt-sm="column" class="md-padding">
+        <h1>Upload an image to the database</h1>
+            <form ng-submit="uploadImage()" name="uploadForm">
+                <h3>Metadata fields</h3>
+                <div ng-repeat="field in metadata_fields" layout="row">
+                  <md-input-container class="md-block" flex="20">
+                    <label>Key</label>
+                    <input ng-model="field.key" name="{{field.key}}" required ng-pattern="/^[a-z_\-]*$/">
+                      <div ng-messages="uploadForm[field.key].$error">
+                          <div ng-message="required">This is required.</div>
+                          <div ng-message="pattern">Invalid key.</div>
+                    </div>
+                  </md-input-container>
+                    <div flex="5"></div>
+                  <md-input-container class="md-block" flex="65">
+                    <label>Value</label>
+                    <textarea ng-model="field.value">
+                    </textarea>
+                  </md-input-container>
+                </div>
+                <div layout="row">
+                    <md-button ng-click="metadata_fields.push({key:'', value:''})">Add field</md-button>
+                    <md-button ng-click="metadata_fields.pop({key:'', value:''})">Remove field</md-button>
+                </div>
+                <h3>Image file</h3>
+                <div layout="row">
+                    <md-input-container flex>
+                        <label>Image URL</label>
+                        <input type="text" ng-model="image_url">
+                    </md-input-container>
+                    <h5 flex="5">OR</h5>
+                    <md-input-container flex="35">
+                        <input type="file" ng-model="image_file" base-sixty-four-input accept="image/*">
+                    </md-input-container>
+                </div>
+                <md-button type="submit">Upload</md-button>
+            </form>
+    </md-card>
+</md-content>

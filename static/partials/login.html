@@ -1,0 +1,18 @@
+<md-content class="md-padding">
+    <md-card flex="40" flex-offset="30" layout-gt-sm="column" class="md-padding">
+        <h1>Login</h1>
+            <form ng-submit="login()">
+                <div layout="column">
+                    <md-input-container flex="50">
+                        <label>username</label>
+                        <input type="text" ng-model="username">
+                    </md-input-container>
+                    <md-input-container flex="50">
+                        <label>password</label>
+                        <input type="password" ng-model="password">
+                    </md-input-container>
+                    <md-button type="submit">Login</md-button>
+                </div>
+            </form>
+    </md-card>
+</md-content>

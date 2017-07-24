@@ -1,0 +1,15 @@
+<md-content class="md-padding">
+    <h1>Statistics</h1>
+    <md-card flex="60" flex-offset="20" layout-gt-sm="column" class="md-padding">
+    <md-list>
+      <md-list-item ng-repeat="stat in stats">
+        <p> {{ stat.label }} </p>
+        <div class="text-right">{{ stat.value }}</div>
+      </md-list-item>
+    </md-list>
+    </md-card>
+
+
+    <h1>Digitization in Venice</h1>
+    <iframe width="100%" height="600" frameborder="0" scrolling="no" src="https://plot.ly/~Atanahel/4.embed?autosize=True&link=false&logo=false"></iframe>
+</md-content>

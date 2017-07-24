@@ -1,0 +1,41 @@
+<md-content class="md-padding">
+    <md-card flex="80" flex-offset="10" layout-gt-sm="column" class="md-padding">
+        <div layout="row">
+            <h3 flex>Annotation Id : {{ annotationData.id}}</h3>
+            <md-button ng-if="isAuthenticated()" ng-click="saveAnnotation()" class="md-raised md-primary">
+                    Save
+            </md-button>
+            <md-button ng-if="isAuthenticated()" ng-click="deleteAnnotation()" class="md-raised md-warn">
+                    Delete
+            </md-button>
+        </div>
+        <md-input-container flex="70">
+            <label>Description</label>
+            <textarea ng-model="annotationData.label" ng-readonly="!isAuthenticated()"></textarea>
+        </md-input-container>
+        <h4>Elements</h4>
+        <div class='md-padding' layout="row" md-scroll-x layout-wrap>
+            <md-card flex="20" ng-repeat="item in annotationData.elements">
+                <div class="img-container square"><img ng-src="{{ getImageThumbnail(item) }}"
+                                                       ng-click="showImageDialog($event,item)"></div>
+                <md-card-content>
+                    <h3>{{ item.metadata.author }}</h3>
+                    <p>{{ item.metadata.title }}</p>
+                </md-card-content>
+                <md-button ng-click="removeFromSelection(item, annotationData.elements)"
+                           class="md-icon-button md-primary"
+                           aria-label="Remove"
+                           ng-if="isAuthenticated()">
+                    <md-icon aria-label="Remove element" class="material-icons">delete</md-icon>
+                </md-button>
+            </md-card>
+            <md-card flex="20" ng-if="isAuthenticated()">
+                <md-button ng-click="addImagePrompt()"
+                           class="md-primary"
+                           aria-label="Add an element">
+                    Add an element
+                </md-button>
+            </md-card>
+        </div>
+    </md-card>
+</md-content>
