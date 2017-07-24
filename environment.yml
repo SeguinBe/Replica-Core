@@ -1,0 +1,28 @@
+name: replica-core
+dependencies:
+- openssl=1.0.2l=0
+- pip=9.0.1=py35_1
+- python=3.5.3=1
+- readline=6.2=2
+- setuptools=27.2.0=py35_0
+- sqlite=3.13.0=0
+- tk=8.5.18=0
+- wheel=0.29.0=py35_0
+- xz=5.2.2=1
+- zlib=1.2.8=3
+- pip:
+  - aniso8601==1.2.1
+  - click==6.7
+  - flask==0.12.2
+  - flask-restplus==0.10.1
+  - itsdangerous==0.24
+  - jinja2==2.9.6
+  - jsonschema==2.6.0
+  - markupsafe==1.0
+  - neo4j-driver==1.2.1
+  - neomodel==3.2.5
+  - python-dateutil==2.6.1
+  - pytz==2017.2
+  - six==1.10.0
+  - werkzeug==0.12.2
+
