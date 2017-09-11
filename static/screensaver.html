@@ -22,8 +22,6 @@
     <script src="js/angular-inview.js"></script>
     <script src="js/sha256.min.js"></script>
     <script src="js/angular-sticky.min.js"></script>
-    <script src="js/angulartics.min.js"></script>
-    <script src="js/angulartics-ga.min.js"></script>
     <script src="https://d3js.org/d3.v4.js"></script>
     <script src='https://rawgit.com/karpathy/tsnejs/master/tsne.js'></script>
 
@@ -33,63 +31,14 @@
 
     <link href="style.css" rel="stylesheet">
 </head>
-<body ng-app="replicaModule" ng-cloak ng-controller="mainController">
+<body ng-app="replicaModule" ng-cloak ng-controller="screenSaverController">
 
-<md-toolbar md-scroll-shrink>
-    <div layout="row" class="md-toolbar-tools">
-        <!--<img class="logo" src="static/Logo.png"/>-->
-        <h4>
-            <a ui-sref="search">
-                Replica
-            </a>
-        </h4>
-        <div flex="5"></div>
-        <h2>
-            <a ui-sref="proposals-list">
-                List of Proposals
-            </a>
-        </h2>
-        <div flex></div>
-        <h2>
-            <a ui-sref="stats">
-                Stats
-            </a>
-        </h2>
-        <div ng-if="!isAuthenticated()" flex="5"></div>
-        <h2 ng-if="!isAuthenticated()">
-            <a ui-sref="login">
-                Login
-            </a>
-        </h2>
-        <div ng-if="isAuthenticated()" flex="5"></div>
-        <h2 ng-if="isAuthenticated()">
-            <a href="" ng-click="logOut()">
-                Logout
-            </a>
-        </h2>
-    </div>
-</md-toolbar>
-
-<md-content flex layout="column" ui-view class="main-content md-default-theme">
-
-</md-content>
+<tsne-view elements="elements" selection="currentSelection" negative-selection="negativeSelection"></tsne-view>
 
 <script src="js/controllers.js"></script>
+<script src="js/preloader.js"></script>
 <script src="js/directives.js"></script>
 <script src="js/tsne-view.js"></script>
-<script src="js/search-controller.js"></script>
-<script src="js/graph-controller.js"></script>
-
-<script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-
-  ga('create', 'UA-104481706-1', 'auto');
-  //ga('send', 'pageview');
-
-</script>
 
 </body>
 </html>

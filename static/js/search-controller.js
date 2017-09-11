@@ -1,7 +1,9 @@
 
-replicaModule.controller('searchController', function ($scope, $http, $mdDialog, $cookies, $state, $stateParams) {
+replicaModule.controller('searchController', function ($scope, $http, $mdDialog, $cookies, $state, $stateParams, $analytics) {
     $scope.results = [];
     $scope.showSideQuery = true;
+    $scope.showResultsAsEmbedding = false;
+    $scope.nbResults = 100;
     var resultsDisplayedInitial = 16;
     console.log($stateParams);
     if ($stateParams.q != null || $stateParams.n != null || $stateParams.image_url != null) {
@@ -14,15 +16,23 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
         loadCookies();
     }
     $scope.searchText = function () {
+        var request = {
+            query: $scope.searchQuery,
+            nb_results: $scope.nbResults
+        };
         $http.get('api/search/text',
-            {params: {query: $scope.searchQuery,
-                nb_results: 300}}).then(
+            {params: request}).then(
             function (response) {
                 $scope.results = response.data.results;
                 $scope.resultsDisplayed = resultsDisplayedInitial;
             }, function (response) {
                 $scope.showErrorToast("Search failed", response);
-            });
+            }).finally(
+            function () {
+                $analytics.eventTrack('searchText');
+                logEvent('search_text', request);
+            }
+        )
     };
     $scope.is_searching = false;
     $scope.searchImage = function () {
@@ -36,7 +46,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
         var request = {
             "positive_image_uids": positive_image_ids,
             "negative_image_uids": negative_image_ids,
-            "nb_results": 100
+            "nb_results": $scope.nbResults
         };
         $http.post("/api/image/search", request).then(
             function (response) {
@@ -48,6 +58,8 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
         ).finally(
             function () {
                 $scope.is_searching=false;
+                $analytics.eventTrack('searchImage');
+                logEvent('search_image', request);
             }
         );
     };
@@ -59,19 +71,22 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
             "box_y": $scope.current_selection[0].images[0].box.y,
             "box_h": $scope.current_selection[0].images[0].box.h,
             "box_w": $scope.current_selection[0].images[0].box.w,
-            "nb_results": 300,
+            "nb_results": $scope.nbResults,
             "reranking_results": 4000
         };
         $http.post("/api/image/search_region", request).then(
             function (response) {
                 $scope.results = response.data.results;
                 $scope.resultsDisplayed = resultsDisplayedInitial;
+                $scope.showResultsAsEmbedding = false;
             }, function (response) {
                 $scope.showErrorToast("Search failed", response.status);
             }
         ).finally(
             function () {
                 $scope.is_searching=false;
+                $analytics.eventTrack('searchImageRegion');
+                logEvent('search_region', request);
             }
         );
     };
@@ -95,8 +110,8 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
             '</md-dialog>',
             controller: function ($mdDialog, $scope) {
                 $scope.POSSIBLE_TYPES = ['DUPLICATE', 'POSITIVE'];
-                $scope.closeDialog = function (type) {
-                    $mdDialog.hide(type);
+                $scope.closeDialog = function (link_type) {
+                    $mdDialog.hide(link_type);
                 };
                 $scope.cancelDialog = function () {
                     $mdDialog.cancel();
@@ -107,12 +122,13 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
                 $mdDialog.show({
                     template: '<md-dialog>' +
                     '  <md-dialog-content>' +
-                    '   <h3>Links to be added ({{ links.length}})</h3>' +
+                    '   <h3>Here are the {{ links.length }} links that will be added</h3>' +
                     '   <div flex="row" ng-repeat="link in links">' +
                     '       <img-box element="link.img1" display-size="200"></img-box>' +
                     '       <img-box element="link.img2" display-size="200"></img-box>' +
                     '       <span>{{ link.type }}</span>' +
                     '       <span>{{ link.status }}</span>' +
+                    '   <md-divider></md-divider>' +
                     '   </div>' +
                     '</md-dialog-content>' +
                     '  <md-dialog-actions>' +
@@ -178,19 +194,43 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
         );
     };
     $scope.addToSelection = function (item, sel) {
-        if (!$scope.isInSelection(item, sel))
+        if (!$scope.isInSelection(item, sel)) {
             sel.push(item);
+            logEvent('add_selection');
+        }
         updateCookies();
         updateState();
     };
+    $scope.$on('toggleCurrentSelection', function(evt, d) {
+        if ($scope.isInSelection(d, $scope.negative_selection))
+            return;
+        $scope.$apply(function () {
+            if ($scope.isInSelection(d, $scope.current_selection))
+                $scope.removeFromSelection(d, $scope.current_selection);
+            else
+                $scope.addToSelection(d, $scope.current_selection);
+      })
+    });
+    $scope.$on('toggleNegativeSelection', function(evt, d) {
+        if ($scope.isInSelection(d, $scope.current_selection))
+            return;
+        $scope.$apply(function () {
+        if ($scope.isInSelection(d, $scope.negative_selection))
+            $scope.removeFromSelection(d, $scope.negative_selection);
+        else
+            $scope.addToSelection(d, $scope.negative_selection);
+    })
+      });
     $scope.removeFromSelection = function (item, sel) {
-        if ($scope.isInSelection(item, sel))
+        if ($scope.isInSelection(item, sel)) {
             for (var n = 0; n < sel.length; n++) {
                 if (sel[n].uid == item.uid) {
                     sel.splice(n, 1);
                     break;
                 }
             }
+            logEvent('remove_selection');
+        }
         updateCookies();
         updateState();
     };
@@ -199,6 +239,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
         $scope.negative_selection = [];
         updateCookies();
         updateState();
+        logEvent('reset_selection');
     };
     function loadCookies() {
         $scope.current_selection = [];
@@ -250,4 +291,26 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
                 return param;
             return [param];
         }
+
+    function logEvent(evt, evt_data) {
+        $http.post(
+            'api/log',
+            {
+                data: {
+                    event: evt,
+                    event_data: evt_data,
+                    scope_data: {
+                        current_selection: $scope.current_selection.map(function(e) {return e.images[0].uid}),
+                        negative_selection: $scope.negative_selection.map(function(e) {return e.images[0].uid}),
+                        show_side_query: $scope.showSideQuery,
+                        show_results_as_embedding: $scope.showResultsAsEmbedding,
+                        nb_desired_results: $scope.nbResults,
+                        nb_obtained_results: $scope.results.length,
+                        nb_results_displayed: $scope.resultsDisplayed
+                    },
+                    timestamp: (new Date()).getTime()
+                }
+            }
+        )
+    }
 });

@@ -80,6 +80,8 @@ angular.module('replicaModule')
             var width = 800,
                 height = 800;
 
+            var image_size = 80;
+
             var zoom = d3.zoom()
                 .scaleExtent([0.5, 10])
                 .on("zoom", zoomed);
@@ -164,10 +166,10 @@ angular.module('replicaModule')
 
                 node
                     .attr("x", function (d) {
-                        return d.x - 40;
+                        return d.x - image_size/2;
                     })
                     .attr("y", function (d) {
-                        return d.y - 40;
+                        return d.y - image_size/2;
                     })
                     .classed("selected", function(d) {return scope.selection.isInSelection(d);})
             }
@@ -187,8 +189,8 @@ angular.module('replicaModule')
                     .attr("xlink:href", function (d) {
                         return getImageThumbnail(d);
                     })
-                    .attr("width", 80)
-                    .attr("height", 80)
+                    .attr("width", image_size)
+                    .attr("height", image_size)
                     .call(d3.drag()
                         .on("start", dragstarted)
                         .on("drag", dragged)

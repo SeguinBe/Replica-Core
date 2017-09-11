@@ -5,13 +5,23 @@
             <md-card flex="30" layout-gt-sm="column">
                 <md-tabs md-autoselect md-border-bottom md-dynamic-height>
                     <md-tab label="Text">
-                        <form ng-submit="searchText()">
+                        <div layout="row" layout-align="space-around center">
+                            <div>
+                            <form ng-submit="searchText()">
                             <md-input-container>
                                 <label>Search query</label>
                                 <input type="text" ng-model="searchQuery" ng-model-options="{debounce: 500}"
                                        ng-change="searchText()">
                             </md-input-container>
-                        </form>
+                            </form>
+                            </div>
+                            <div>
+                                <md-switch ng-model="showResultsAsEmbedding" aria-label="Show results embedding">
+                                    Show results as embedding
+                                </md-switch>
+                            </div>
+                        </div>
+
                     </md-tab>
                     <md-tab label="Image">
                         <div layout="row" layout-align="space-around center">
@@ -26,8 +36,8 @@
                                 </md-button>
                             </div>
                             <div>
-                                <md-switch ng-model="showSideQuery" aria-label="Show query on the side">
-                                    Show query on the side
+                                <md-switch ng-model="showResultsAsEmbedding" aria-label="Show results embedding">
+                                    Show results as embedding
                                 </md-switch>
                             </div>
                         </div>
@@ -63,6 +73,23 @@
                                            ng-if="!is_searching">
                                     <md-icon class="material-icons">search</md-icon>
                                 </md-button>
+                            </div>
+                        </div>
+                    </md-tab>
+                    <md-tab label="Options">
+                        <div layout="column" layout-align="center">
+                            <div layout="row">
+                            <md-switch ng-model="showSideQuery" aria-label="Show query on the side">
+                                Show query
+                            </md-switch>
+                            <md-switch ng-model="showResultsAsEmbedding" aria-label="Show results embedding">
+                                Show embedding
+                            </md-switch>
+                                </div>
+                            <div layout="row">
+                                <span>Number of results</span>
+                                <md-slider flex class="md-primary" md-discrete ng-model="nbResults" step="10" min="20" max="400" aria-label="Number of Results">
+                                </md-slider>
                             </div>
                         </div>
                     </md-tab>
@@ -146,7 +173,7 @@
                 </div>
             </div>
             <div flex>
-                <div class='results' layout="row" layout-wrap layout-align="space-between" infinite-scroll='showMoreResults()'>
+                <div class='results' layout="row" layout-wrap layout-align="space-between" infinite-scroll='showMoreResults()' ng-if="!showResultsAsEmbedding">
                     <!--<md-grid-list md-cols="4"
                           md-gutter="12px" md-row-height="1:1">
 
@@ -189,6 +216,9 @@
 
                     </md-card>
                 </div>
+                <tsne-view ng-if="showResultsAsEmbedding" elements="results" selection="current_selection"
+                           negative-selection="negative_selection">
+                </tsne-view>
             </div>
         </div>
     </div>

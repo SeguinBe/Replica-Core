@@ -2,11 +2,10 @@
  * Created by benoit on 18/01/2016.
  */
 
-var imageServerAdress = 'http://dhlabsrv4.epfl.ch/iiif_replica/';
-
 var replicaModule = angular.module('replicaModule', [
     'mrImage', 'ui.router', 'ngMaterial', 'ngCookies', 'ngMessages',
-    'naif.base64', 'satellizer', 'angular-inview', 'hl.sticky']);
+    'naif.base64', 'satellizer', 'angular-inview', 'hl.sticky',
+    'angulartics', 'angulartics.google.analytics']);
 
 replicaModule.config(function ($stateProvider, $urlRouterProvider, $authProvider) {
 
@@ -26,19 +25,17 @@ replicaModule.config(function ($stateProvider, $urlRouterProvider, $authProvider
                 q: null,
                 n: null,
                 image_url: null
+            },
+            resolve: {
+                loginRequired: loginRequired
             }
         })
         .state('proposals-list', {
             controller: 'proposalsListController',
             url: "/proposals-list",
-            templateUrl: "partials/proposals_list.html"
-        })
-        .state('annotation', {
-            controller: 'annotationEditController',
-            url: "/annotation?id",
-            templateUrl: "partials/annotation.html",
-            params: {
-                id: null
+            templateUrl: "partials/proposals_list.html",
+            resolve: {
+                loginRequired: loginRequired
             }
         })
         .state('graph', {
@@ -53,14 +50,6 @@ replicaModule.config(function ($stateProvider, $urlRouterProvider, $authProvider
             controller: 'statsController',
             url: "/stats",
             templateUrl: "partials/stats.html"
-        })
-        .state('upload', {
-            controller: 'uploadImageController',
-            url: "/upload",
-            templateUrl: "partials/upload.html",
-            resolve: {
-                loginRequired: loginRequired
-            }
         })
         .state('login', {
             controller: 'loginController',
@@ -184,6 +173,10 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
         }
     };
 
+    $scope.$on('showImageDialog', function(evt, uid) {
+        $scope.showImageDialog(null, uid);
+      });
+
     $scope.showCropperDialog = function (ev, element) {
         /**
          * Needs to be called with element as an image object (with a iiif_url field)
@@ -261,6 +254,58 @@ replicaModule.controller('proposalsListController', function ($scope, $http, $md
             }, function (response) {
                 $scope.showErrorToast("Fetching list failed", response);
             });
+    };
+    $scope.annotateProposal = function (i) {
+        $mdDialog.show({
+            template: '<md-dialog>' +
+
+            '  <md-dialog-content>Positive Link Type?</md-dialog-content>' +
+            '  <div flex="row">' +
+            '       <img-box element="link.img1" display-size="200"></img-box>' +
+            '       <img-box element="link.img2" display-size="200"></img-box>' +
+            '   <md-divider></md-divider>' +
+            '   </div>' +
+            '  <md-dialog-actions>' +
+            '    <md-button ng-click="closeDialog(type)" class="md-primary" ng-repeat="type in POSSIBLE_TYPES">' +
+            '      {{type}}' +
+            '    </md-button>' +
+            '    <md-button ng-click="cancelDialog()" class="md-secondary">' +
+            '      Cancel' +
+            '    </md-button>' +
+            '  </md-dialog-actions>' +
+            '</md-dialog>',
+            locals: { rootScope: $scope },
+            controller: function ($mdDialog, $scope, rootScope) {
+                $scope.POSSIBLE_TYPES = ['DUPLICATE', 'POSITIVE', 'NEGATIVE'];
+                $scope.link = {
+                    img1: rootScope.proposalsList[i].images[0],
+                    img2: rootScope.proposalsList[i].images[1]
+                };
+                $scope.closeDialog = function (link_type) {
+                    $mdDialog.hide({link: $scope.link, link_type: link_type});
+                    // Remove from display
+                    rootScope.proposalsList.splice(i,1);
+                };
+                $scope.cancelDialog = function () {
+                    $mdDialog.cancel();
+                }
+            }
+        }).then(
+            function (data) {
+                var link = data.link;
+                var link_type = data.link_type;
+
+                $http.post('api/link/create', {
+                        img1_uid: link.img1.uid, img2_uid: link.img2.uid,
+                        type: data.link_type
+                    }
+                ).then(function () {
+                        $scope.showSimpleToast(link_type + " link save success.");
+                    }
+                    , function (response) {
+                        $scope.showSimpleToast(link_type + " link save error.");
+                    });
+            })
     };
     $scope.refreshProposals();
 });
@@ -422,4 +467,47 @@ replicaModule.controller('statsController', function ($scope, $http, $mdDialog, 
             });
     };
     $scope.refreshStats();
+});
+
+
+replicaModule.controller('screenSaverController', function ($interval, $scope, $http, preloader) {
+    $scope.elements = [];
+    $scope.currentSelection = [];
+    $scope.negativeSelection = [];
+
+    function getImageThumbnail(e) {
+        return e.images[0].iiif_url + "/full/450,/0/default.jpg";
+    }
+
+    var reloadElements = function () {
+        $http.get('api/element/random').then(
+            function (response) {
+                var query = response.data[0];
+                var request = {
+                    "positive_image_uids": [query.images[0].uid],
+                    "negative_image_uids": [],
+                    "nb_results": 50
+                };
+                $http.post("/api/image/search", request).then(
+                    function (response) {
+                        var elements = response.data.results;
+                        preloader.preloadImages( elements.map(getImageThumbnail) )
+                        .then(function() {
+                            $scope.elements = elements;
+                        },
+                        function() {
+                            // Loading failed on at least one image.
+                        });
+
+                    }, function (response) {
+                        $scope.showErrorToast("Search failed", response);
+                    }
+                )
+            }, function (response) {
+                $scope.showErrorToast("Random fetching failed",  response);
+            });
+    };
+
+    $interval(reloadElements, 10000);
+
 });

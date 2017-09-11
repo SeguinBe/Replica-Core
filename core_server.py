@@ -1,10 +1,12 @@
 import neomodel
 from flask import Flask, request, g
 from flask_restplus import Api, Resource, fields
+from flask_prometheus import monitor
 from werkzeug.exceptions import BadRequest
 import requests
 from collections import namedtuple
 from functools import partial
+import json
 
 from replica_core import model, auth
 
@@ -16,6 +18,11 @@ app.config.SWAGGER_UI_JSONEDITOR = True
 def base_file():
     print(str(request.headers['Host']))
     return app.send_static_file("base.html")
+
+
+@app.route('/screensaver')
+def screensaver():
+    return app.send_static_file("screensaver.html")
 
 
 api = Api(app, doc='/api/', title='Replica API')
@@ -137,6 +144,19 @@ class ElementResource(Resource):
         return cho.to_dict(extended=True)
 
 
+@api.route('/api/element/random')
+class LinkResource(Resource):
+    parser = api.parser()
+    parser.add_argument('nb_elements', type=int, default=1)
+
+    @api.expect(parser)
+    @api.marshal_with(api.models['CHO_ext'])
+    def get(self):
+        args = self.parser.parse_args()
+        chos = model.CHO.get_random(limit=args['nb_elements'])
+        return [cho.to_dict(extended=True) for cho in chos]
+
+
 @api.route('/api/image/<string:uid>')
 class ImageResource(Resource):
     @api.marshal_with(api.models['Image_ext'])
@@ -156,14 +176,14 @@ class LinkResource(Resource):
             raise BadRequest("{} is not a link".format(uid))
         return link.to_dict(extended=True)
 
-    @auth.login_required
-    def delete(self, uid):
-        link = model.VisualLink.nodes.get_or_none(uid=uid)  # type: model.VisualLink
-        if link:
-            link.delete()
-            return {}
-        else:
-            raise BadRequest("{} is not a link".format(uid))
+    #@auth.login_required
+    #def delete(self, uid):
+    #    link = model.VisualLink.nodes.get_or_none(uid=uid)  # type: model.VisualLink
+    #    if link:
+    #        link.delete()
+    #        return {}
+    #    else:
+    #        raise BadRequest("{} is not a link".format(uid))
 
 
 @api.route('/api/link/create')
@@ -260,14 +280,14 @@ class LinkResource(Resource):
             raise BadRequest("{} is not a triplet".format(uid))
         return link.to_dict(extended=True)
 
-    @auth.login_required
-    def delete(self, uid):
-        link = model.TripletComparison.nodes.get_or_none(uid=uid)  # type: model.TripletComparison
-        if link:
-            link.delete()
-            return {}
-        else:
-            raise BadRequest("{} is not a link".format(uid))
+    #@auth.login_required
+    #def delete(self, uid):
+    #    link = model.TripletComparison.nodes.get_or_none(uid=uid)  # type: model.TripletComparison
+    #    if link:
+    #        link.delete()
+    #        return {}
+    #    else:
+    #        raise BadRequest("{} is not a link".format(uid))
 
     parser = api.parser()
     parser.add_argument('positive_uid', type=str, required=True)
@@ -325,8 +345,8 @@ class SearchTextResource(Resource):
                                           "query": {
                                               "multi_match": {
                                                   "query": q,
-                                                  # "type": "phrase",
-                                                  "fuzziness": "AUTO",
+                                                  "type": "most_fields",
+                                                  "fuzziness": "AUTO",  # 1
                                                   "fields": [
                                                       "author",
                                                       "title"
@@ -338,7 +358,8 @@ class SearchTextResource(Resource):
             if es_results.status_code != 200:
                 raise BadRequest('ElasticSearch query failed')
             ids = [int(r['_id']) for r in es_results.json()['hits']['hits']]
-            results = [model.CHO.get_by_id(_id) for _id in ids]
+            #results = [model.CHO.get_by_id(_id) for _id in ids]
+            results = model.CHO.get_by_ids(ids)
         else:
             results = model.CHO.search(q, nb_results)
         return {'query': q, 'results': [r.to_dict() for r in results]}
@@ -365,6 +386,26 @@ class SearchImageResource(Resource):
         for result in r.json()['results']:
             result_output.append(model.CHO.get_from_image_uid(result['uid']).to_dict())
         return {'results': result_output}
+
+
+@api.route('/api/image/distance_matrix')
+class DistanceMatrixResource(Resource):
+    parser = api.parser()
+    parser.add_argument('image_uids', type=list, required=True, location='json')
+
+    distance_matrix_model = api.model('DistanceMatrixModel', {'distances': fields.List(fields.List(fields.Float))})
+
+    @api.marshal_with(distance_matrix_model)
+    @api.expect(parser)
+    def post(self):
+        args = self.parser.parse_args()
+        try:
+            r = requests.post(app.config['REPLICA_SEARCH_URL'] + '/api/distance_matrix', json=args)
+        except Exception as e:
+            raise BadRequest('Could not connect to search server')
+        if r.status_code != 200:
+            raise BadRequest('Bad answer from the search server : {}'.format(r.json().get('message')))
+        return r.json()
 
 
 @api.route('/api/image/search_region')
@@ -448,5 +489,22 @@ class GraphResource(Resource):
         }
 
 
+@api.route('/api/log')
+class GraphResource(Resource):
+    parser = api.parser()
+    parser.add_argument('data', type=dict, required=True, location='json')
+
+    @api.expect(parser)
+    @auth.login_required
+    def post(self):
+        current_user = model.User.nodes.get(uid=g.user_uid)
+        data = self.parser.parse_args()['data']
+        data['user_uid'] = current_user.username
+        with open(app.config['LOG_FILE'], 'a') as f:
+            f.write(json.dumps(data))
+            f.write('\n')
+
+
 if __name__ == '__main__':
+    monitor(app, port=5010)
     app.run(host='0.0.0.0', debug=True, port=5000, threaded=True)

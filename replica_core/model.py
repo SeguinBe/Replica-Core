@@ -106,6 +106,14 @@ class BaseElement:
         return cls.inflate(results[0][0]) if len(results) > 0 else None
 
     @classmethod
+    def get_by_ids(cls, _ids):
+        query = "MATCH (a) WHERE id(a) IN {ids} RETURN a"
+        results, meta = db.cypher_query(query, {'ids': _ids})
+        unordered_results = [cls.inflate(r[0]) for r in results]
+        key_order = {cho.id : cho for cho in unordered_results}
+        return [key_order[_id] for _id in _ids]
+
+    @classmethod
     def get_elements_created_since(cls, time=datetime.today() - timedelta(1)):
         # return cls.nodes.filter(added__gt=time.timestamp())
         query = "MATCH (a) WHERE a.added>{timestamp} RETURN a ORDER BY a.added DESC"
@@ -209,6 +217,14 @@ class CHO(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
         if extended:
             result['parent_collection_hierarchy'] = [d.to_dict() for d in self.get_parent_collections_hierarchy()]
         return result
+
+    @classmethod
+    def get_random(cls, limit=10) -> List['CHO']:
+        results, _ = db.cypher_query('''MATCH (a:CHO)
+                                        RETURN a, rand() as r
+                                        ORDER BY r LIMIT {limit}''',
+                                     dict(limit=limit))
+        return [CHO.inflate(r[0]) for r in results]
 
 
 class Image(StructuredNode, BaseElement):

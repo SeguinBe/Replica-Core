@@ -1,6 +1,6 @@
 <!--<md-button ng-click="refreshAnnotations()">Refresh</md-button>-->
 
-<md-content class="md-padding" ng-repeat="proposal in proposalsList">
+<md-content class="md-padding" ng-repeat="proposal in proposalsList track by $index">
 
     <h3>Added by {{ proposal.creator.username}}</h3>
     <div class='md-padding' layout="row">
@@ -12,5 +12,9 @@
                     ng-click="showImageDialog($event, image.uid)">
             </div>
         </md-card>
+
+        <md-button ng-click="annotateProposal($index)">Annotate</md-button>
+
+
     </div>
 </md-content>

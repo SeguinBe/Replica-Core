@@ -8,6 +8,21 @@ images-graph svg {
     background-color: black;
 }
 
+tsne-view svg {
+    background-color: black;
+}
+
+tsne-view circle {
+    stroke: red;
+    stroke-width: 3;
+    fill-opacity: 0;
+}
+
+tsne-view line {
+    stroke: red;
+    stroke-width: 3;
+    stroke-opacity: 1.0;
+}
 
 .links line {
     stroke: #cbccc9;
