@@ -2,7 +2,8 @@ import neomodel
 from neomodel import StructuredNode, StructuredRel, db
 from neomodel import StringProperty, DateTimeProperty, ArrayProperty, UniqueIdProperty, EmailProperty, \
     RelationshipFrom, RelationshipTo, Relationship, JSONProperty, IntegerProperty
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
+import re
 from flask_restplus import fields, Model
 import hashlib
 import pytz
@@ -36,6 +37,28 @@ class IIIFMetadata:
     license = StringProperty(help_text='IIIF license')
     logo = StringProperty(help_text='IIIF logo')
     raw_metadata = JSONProperty(default={}, help_text='IIIF Raw metadata field')
+
+    def get_metadata(self, label: str, default=None):
+        metadata_dict = {d['label']: d['value'] for d in self.raw_metadata}
+        return metadata_dict.get(label, default)
+
+    def get_date_from_fields(self, labels: List[str]):
+        metadata_dict = {d['label']: d['value'] for d in self.raw_metadata}
+        for l in labels:
+            maybe_date = self._get_date_from_value(metadata_dict.get(l))
+            if maybe_date is not None:
+                return maybe_date
+        return None
+
+    @staticmethod
+    def _get_date_from_value(f: str) -> Optional[int]:
+        if isinstance(f, int):
+            return f
+        if isinstance(f, str):
+            all_dates = re.findall('[0-9]{4}', f)
+            if len(all_dates) > 0:
+                return round(sum([int(d) for d in all_dates])/len(all_dates))
+        return None
 
 
 class BaseElement:
@@ -110,7 +133,7 @@ class BaseElement:
         query = "MATCH (a) WHERE id(a) IN {ids} RETURN a"
         results, meta = db.cypher_query(query, {'ids': _ids})
         unordered_results = [cls.inflate(r[0]) for r in results]
-        key_order = {cho.id : cho for cho in unordered_results}
+        key_order = {cho.id: cho for cho in unordered_results}
         return [key_order[_id] for _id in _ids]
 
     @classmethod
@@ -174,6 +197,7 @@ class CHO(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
     # Parsed Metadata
     author = StringProperty()
     title = StringProperty()
+    date = IntegerProperty()
 
     # Relationships
     images = RelationshipTo('Image', 'IS_SHOWN_BY', cardinality=neomodel.OneOrMore)
@@ -472,7 +496,7 @@ def get_subgraph(image_uids: List[str], graph_depth=3) -> (List[Image], List[Tup
                                     """,
                                  dict(image_uids=image_uids))
 
-    if len(results)> 0:
+    if len(results) > 0:
         nodes_data, links_data = results[0]
     else:
         nodes_data, links_data = [], []

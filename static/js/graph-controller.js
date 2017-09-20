@@ -69,7 +69,7 @@ angular.module('replicaModule')
         };
         $scope.refreshData();
     })
-    .directive('imagesGraph', function () {
+    .directive('imagesGraph', function ($http) {
         function link(scope, el_base) {
 
             function getImageThumbnail(e) {
@@ -80,7 +80,8 @@ angular.module('replicaModule')
             var width = 800,
                 height = 800;
 
-            var image_size = 80;
+            var base_image_size = 40;
+            var image_size = base_image_size;
 
             var zoom = d3.zoom()
                 .scaleExtent([0.5, 10])
@@ -107,7 +108,7 @@ angular.module('replicaModule')
                 chart.attr("transform", d3.event.transform);
             }
 
-            var simulation = d3.forceSimulation()
+            /*var simulation = d3.forceSimulation()
                 .force("link", d3.forceLink().id(function (d) {
                         return d.uid;
                     })
@@ -115,6 +116,48 @@ angular.module('replicaModule')
                 .force("charge", d3.forceManyBody()
                     .strength(-300))
                 .force("center", d3.forceCenter(width / 2, height / 2))
+                .on("tick", ticked);*/
+
+            var centerx = d3.scaleLinear()
+                        .range([0, width]);
+            var centery = d3.scaleLinear()
+                        .range([0, height]);
+            var model = new tsnejs.tSNE({
+                    dim: 2,
+                    perplexity: 10,
+                    epsilon: 3
+                });
+
+            var simulation = d3.forceSimulation()
+                .force('tsne', function (alpha) {
+                    // every time you call this, solution gets better
+                    model.step();
+
+                    // Y is an array of 2-D points that you can plot
+                    var pos = model.getSolution();
+                    if (pos) {
+
+                        centerx.domain(d3.extent(pos.map(function (d) {
+                            return d[0]
+                        })));
+                        centery.domain(d3.extent(pos.map(function (d) {
+                            return d[1]
+                        })));
+
+                        scope.data.nodes.forEach(function (d, i) {
+                            if (!d.x) {
+                                d.x = 0;
+                            }
+                            if (!d.y) {
+                                d.y = 0;
+                            }
+                            d.x += alpha * (centerx(pos[i][0]) - d.x);
+                            d.y += alpha * (centery(pos[i][1]) - d.y);
+                        });
+                    }
+                    //console.log(model.iter);
+                })
+                .force('collide', d3.forceCollide().radius(function(d) {return image_size/2;}))
                 .on("tick", ticked);
 
             var link = chart.append("g")
@@ -126,7 +169,8 @@ angular.module('replicaModule')
                 .selectAll(".node");
 
             function dragstarted(d) {
-                if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+                //if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+                simulation.force("tsne", null);
                 d.fx = d.x;
                 d.fy = d.y;
             }
@@ -177,7 +221,10 @@ angular.module('replicaModule')
             scope.$watch('data', function () {
                 console.log(scope.data.nodes.length);
 
+                image_size = base_image_size/Math.sqrt((scope.data.nodes.length+1)/100);
+
                 // Apply the general update pattern to the nodes.
+
                 node = node.data(scope.data.nodes, function (d) {
                     return d.uid;
                 });
@@ -203,11 +250,15 @@ angular.module('replicaModule')
                 });
                 link.exit().remove();
                 link = link.enter().append("line").merge(link);
+                //simulation.force("link").links(scope.data.links);
+                if (scope.data.nodes.length == 0)
+                    return;
                 // Update and restart the simulation.
+                model.initDataDist(scope.data.distances);
+                model.iter = 0;
                 simulation.nodes(scope.data.nodes);
-                simulation.force("link").links(scope.data.links);
-                simulation.alpha(1).restart();
-
+                simulation.alphaDecay(0.0001)
+                    .alpha(0.02).restart();
             });
             /* scope.$watch(function(){
              width = el.clientWidth;

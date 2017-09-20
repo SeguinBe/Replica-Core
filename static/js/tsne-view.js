@@ -87,9 +87,14 @@ angular.module('replicaModule')
                 .on("tick", ticked);
 
 
+            var link = chart.append("g")
+                .attr("class", "links")
+                .selectAll("line");
             var node_group = chart.append("g")
                 .attr("class", "nodes");
             var node = node_group.selectAll(".node");
+
+
 
             function isInSelection(item, sel) {
                 return !sel.every(function (e) {
@@ -116,6 +121,21 @@ angular.module('replicaModule')
                         else
                             return "hidden";
                     });
+
+                link
+                    .attr("x1", function (d) {
+                        return d.source.x;
+                    })
+                    .attr("y1", function (d) {
+                        return d.source.y;
+                    })
+                    .attr("x2", function (d) {
+                        return d.target.x;
+                    })
+                    .attr("y2", function (d) {
+                        return d.target.y;
+                    })
+                    .attr("class", function (d) {return d.data.type;});
             }
 
             scope.$watch('elements', function () {
@@ -128,7 +148,7 @@ angular.module('replicaModule')
                         model.initDataDist(response.data.distances);
                         model.iter=0;
                         nodes_data = scope.elements.slice(); // Duplicate
-                        //image_size = base_image_size*150/(scope.elements.length+50);
+                        image_size = base_image_size/Math.sqrt((scope.elements.length+1)/100);
 
                         // Apply the general update pattern to the nodes.
                         node = node_group.selectAll(".node");
@@ -150,6 +170,7 @@ angular.module('replicaModule')
                             .merge(node);
                         node
                             .append("image")
+                            .merge(node)
                             .attr("xlink:href", function (d) {
                                 return getImageThumbnail(d);
                             })
@@ -185,6 +206,14 @@ angular.module('replicaModule')
 
             });
 
+            scope.$watch('links', function () {
+                link = link.data(scope.links, function (d) {
+                    return d.source.uid + "-" + d.target.uid;
+                });
+                link.exit().remove();
+                link = link.enter().append("line").merge(link);
+            });
+
             scope.$on('$destroy', function() {
                 console.log("destroy");
                 simulation.stop();
@@ -195,7 +224,7 @@ angular.module('replicaModule')
         return {
             link: link,
             restrict: 'E',
-            scope: {selection: '=', negativeSelection: '=', elements: '='},
+            scope: {selection: '=', negativeSelection: '=', elements: '=', links: '='},
             controller: function($scope) {
 
             }

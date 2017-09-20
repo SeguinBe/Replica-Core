@@ -176,14 +176,14 @@ class LinkResource(Resource):
             raise BadRequest("{} is not a link".format(uid))
         return link.to_dict(extended=True)
 
-    #@auth.login_required
-    #def delete(self, uid):
-    #    link = model.VisualLink.nodes.get_or_none(uid=uid)  # type: model.VisualLink
-    #    if link:
-    #        link.delete()
-    #        return {}
-    #    else:
-    #        raise BadRequest("{} is not a link".format(uid))
+        # @auth.login_required
+        # def delete(self, uid):
+        #    link = model.VisualLink.nodes.get_or_none(uid=uid)  # type: model.VisualLink
+        #    if link:
+        #        link.delete()
+        #        return {}
+        #    else:
+        #        raise BadRequest("{} is not a link".format(uid))
 
 
 @api.route('/api/link/create')
@@ -258,6 +258,27 @@ class LinkResource(Resource):
         return [link.to_dict(extended=True) for link in links]
 
 
+@api.route('/api/link/related')
+class LinkResource(Resource):
+    parser = api.parser()
+    parser.add_argument('image_uids', type=list, required=True, location='json')
+
+    graph_link_model = api.model('GraphLinkData', {'source': fields.String,
+                                                   'target': fields.String,
+                                                   'data': fields.Nested(api.models['VisualLink'])})
+    related_data = api.model('RelatedData',
+                             {'links': fields.List(fields.Nested(graph_link_model))})
+
+    @api.marshal_with(related_data)
+    @api.expect(parser)
+    def post(self):
+        args = self.parser.parse_args()
+        _, links = model.get_subgraph(args['image_uids'], graph_depth=0)
+        return {'links': [{'source': uid1,
+                       'target': uid2,
+                       'data': l.to_dict()} for uid1, uid2, l in links]}
+
+
 @api.route('/api/triplet/proposal/random')
 class LinkResource(Resource):
     parser = api.parser()
@@ -280,8 +301,8 @@ class LinkResource(Resource):
             raise BadRequest("{} is not a triplet".format(uid))
         return link.to_dict(extended=True)
 
-    #@auth.login_required
-    #def delete(self, uid):
+    # @auth.login_required
+    # def delete(self, uid):
     #    link = model.TripletComparison.nodes.get_or_none(uid=uid)  # type: model.TripletComparison
     #    if link:
     #        link.delete()
@@ -343,14 +364,22 @@ class SearchTextResource(Resource):
             es_results = requests.get('{}/_search'.format(app.config['ELASTICSEARCH_URL']),
                                       json={
                                           "query": {
-                                              "multi_match": {
-                                                  "query": q,
-                                                  "type": "most_fields",
-                                                  "fuzziness": "AUTO",  # 1
-                                                  "fields": [
-                                                      "author",
-                                                      "title"
-                                                  ]
+                                              # "multi_match": {
+                                              #     "query": q,
+                                              #     #"type": "most_fields",
+                                              #     "fuzziness": "AUTO",  # 1
+                                              #     "fields": [
+                                              #         "author",
+                                              #         "title"
+                                              #     ],
+                                              #     "operator":   "and"
+                                              # }
+                                              "match": {
+                                                  "_all": {
+                                                      "query": q,
+                                                      "operator": "and",
+                                                      #"fuzziness": "AUTO",
+                                                  }
                                               }
                                           },
                                           "size": nb_results
@@ -358,7 +387,7 @@ class SearchTextResource(Resource):
             if es_results.status_code != 200:
                 raise BadRequest('ElasticSearch query failed')
             ids = [int(r['_id']) for r in es_results.json()['hits']['hits']]
-            #results = [model.CHO.get_by_id(_id) for _id in ids]
+            # results = [model.CHO.get_by_id(_id) for _id in ids]
             results = model.CHO.get_by_ids(ids)
         else:
             results = model.CHO.search(q, nb_results)
@@ -371,6 +400,7 @@ class SearchImageResource(Resource):
     parser.add_argument('positive_image_uids', type=list, required=True, location='json')
     parser.add_argument('negative_image_uids', type=list, default=[], location='json')
     parser.add_argument('nb_results', type=int, default=100)
+    parser.add_argument('index', type=str, location='json')
 
     @api.marshal_with(model_image_search)
     @api.expect(parser)
@@ -392,6 +422,7 @@ class SearchImageResource(Resource):
 class DistanceMatrixResource(Resource):
     parser = api.parser()
     parser.add_argument('image_uids', type=list, required=True, location='json')
+    parser.add_argument('index', type=str, location='json')
 
     distance_matrix_model = api.model('DistanceMatrixModel', {'distances': fields.List(fields.List(fields.Float))})
 
@@ -417,6 +448,7 @@ class SearchImageResource(Resource):
     parser.add_argument('box_h', type=float, default=1.0, location='json')
     parser.add_argument('box_w', type=float, default=1.0, location='json')
     parser.add_argument('nb_results', type=int, default=100)
+    parser.add_argument('index', type=str, location='json')
 
     @api.marshal_with(model_image_search_region)
     @api.expect(parser)
@@ -474,18 +506,27 @@ class GraphResource(Resource):
                                                    'data': fields.Nested(api.models['VisualLink'])})
     graph_model = api.model('GraphData',
                             {'nodes': fields.List(fields.Nested(api.models['Image'])),
-                             'links': fields.List(fields.Nested(graph_link_model))})
+                             'links': fields.List(fields.Nested(graph_link_model)),
+                             'distances': fields.List(fields.List(fields.Float))})
 
     @api.marshal_with(graph_model)
     def post(self):
         args = self.parser.parse_args()
         print(args['image_uids'])
         nodes, links = model.get_subgraph(args['image_uids'])
+        try:
+            r = requests.post(app.config['REPLICA_SEARCH_URL'] + '/api/distance_matrix',
+                              json={'image_uids': [img.uid for img in nodes]})
+        except Exception as e:
+            raise BadRequest('Could not connect to search server')
+        if r.status_code != 200:
+            raise BadRequest('Bad answer from the search server : {}'.format(r.json().get('message')))
         return {
             'nodes': [img.to_dict() for img in nodes],
             'links': [{'source': uid1,
                        'target': uid2,
-                       'data': l.to_dict()} for uid1, uid2, l in links]
+                       'data': l.to_dict()} for uid1, uid2, l in links],
+            'distances': r.json()['distances']
         }
 
 

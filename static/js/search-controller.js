@@ -1,6 +1,7 @@
 
 replicaModule.controller('searchController', function ($scope, $http, $mdDialog, $cookies, $state, $stateParams, $analytics) {
     $scope.results = [];
+    $scope.links = [];
     $scope.showSideQuery = true;
     $scope.showResultsAsEmbedding = false;
     $scope.nbResults = 100;
@@ -15,6 +16,28 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     } else {
         loadCookies();
     }
+
+    function updateLinks() {
+        $http.post('api/link/related',
+            {image_uids: $scope.results.map(function(e) {return e.images[0].uid})}).then(
+            function (response) {
+                $scope.links = response.data.links;
+                $scope.links.forEach(function (l) {
+                    var sourceNode = $scope.results.filter(function (d, i) {
+                        return d.images[0].uid == l.source
+                    })[0];
+                    var targetNode = $scope.results.filter(function (d, i) {
+                        return d.images[0].uid == l.target
+                    })[0];
+                    l.source = sourceNode;
+                    l.target = targetNode;
+                });
+            }, function (response) {
+                $scope.showErrorToast("Links updating failed", response);
+            })
+
+    }
+    $scope.$watch('results', updateLinks);
     $scope.searchText = function () {
         var request = {
             query: $scope.searchQuery,
@@ -181,6 +204,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
                         }
                         $scope.closeDialog = function() {
                             $mdDialog.hide();
+                            updateLinks();
                         };
                         $scope.saveAll = function() {
                             $scope.saving_started = true;
