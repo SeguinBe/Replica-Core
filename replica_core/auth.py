@@ -5,10 +5,12 @@ from functools import wraps
 from flask import request, jsonify, g, current_app
 
 
-def create_token(user_uid):
+def create_token(user_uid, username, authorization_level):
     payload = {
         # 'sub': user.id,
         'user_uid': user_uid,  # subject
+        'username': username,
+        'authorization_level': authorization_level,
         'iat': datetime.utcnow(),  # issued at
         'exp': datetime.utcnow() + timedelta(days=14)  # expiry
     }
