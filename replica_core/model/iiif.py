@@ -74,7 +74,9 @@ class IIIFMetadata:
                         e += (b // 10)*10
                     if e < 100:
                         e += (b // 100)*100
-                    assert b < e, (f, b, e)
+                    if e < b:
+                        print('Weird value', f)
+                        b, e = min(b, e), max(b, e)
                 return b, e
             # c. 1565
             pattern = '(c|c.|circa)\W?{date}'.format(date=date)

@@ -47,35 +47,35 @@ tsne-view line {
 }
 
 .img-container {
-    width: 100%;
+    /*width: 100%;
     padding-bottom: 100%;
-    position: relative;
+    position: relative;*/
 }
 
 .img-container img {
-    max-height: 100%;
+    /*max-height: 100%;*/
     max-width: 100%;
-    width: auto;
+    /*width: auto;*/
     height: auto;
-    position: absolute;
+    /*position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
-    margin: auto;
+    margin: auto;*/
 }
 
 .img-container svg {
-    max-height: 100%;
+    /*max-height: 100%;*/
     max-width: 100%;
-    /*width: auto;
-    height: auto;*/
-    position: absolute;
+    /*width: auto;*/
+    height: auto;
+    /*position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
-    margin: auto;
+    margin: auto;*/
 }
 
 .logo {
