@@ -20,10 +20,13 @@
                 <div layout-gt-sm="row">
                     <div flex="40">
                         <p>
-                            id : {{ element.uid }}
+                            Object id : {{ element.cho.uid }}
+                        </p>
+                        <p>
+                            Image id : {{ element.uid }}
                         </p>
 
-                        <h3>Linked with</h3>
+                        <h3 ng-if="element.links.length>0">Linked with</h3>
                         <div layout="row" layout-wrap layout-align="space-between">
                             <md-card flex="25" ng-repeat="img_l in element.links">
                                 <div class="img-container">

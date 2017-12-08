@@ -42,6 +42,10 @@ tsne-view line {
     stroke: #4bcca0;
 }
 
+.links line.PERSONAL {
+    stroke: #05b4cc;
+}
+
 .img-container {
     width: 100%;
     padding-bottom: 100%;

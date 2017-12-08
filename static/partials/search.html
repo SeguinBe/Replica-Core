@@ -1,25 +1,30 @@
 <div layout="row" layout-offset="5">
     <div flex="0"></div>
     <div flex>
-        <div layout="row" style="height: 280px" layout-align="space-between">
-            <md-card flex="30" layout-gt-sm="column">
+        <div layout="row" style="height: 280px" layout-align="space-between" ng-if="experiment_type!='annotation'">
+            <md-card flex="30" layout-gt-sm="column" ng-if="!experiment_mode">
                 <md-tabs md-autoselect md-border-bottom md-dynamic-height>
                     <md-tab label="Text">
                         <div layout="row" layout-align="space-around center">
-                            <div>
-                            <form ng-submit="searchText()">
-                            <md-input-container>
-                                <label>Search query</label>
-                                <input type="text" ng-model="searchQuery" ng-model-options="{debounce: 500}"
-                                       ng-change="searchText()">
-                            </md-input-container>
-                            </form>
-                            </div>
-                            <div>
-                                <md-switch ng-model="showResultsAsEmbedding" aria-label="Show results embedding">
-                                    Show results as embedding
+                                <form ng-submit="searchText()" flex>
+                                    <md-input-container>
+                                        <label>Search query</label>
+                                        <input type="text" ng-model="$parent.$parent.searchQuery" ng-model-options="{debounce: 500}"
+                                               ng-change="searchText()">
+                                    </md-input-container>
+                                </form>
+                                <md-switch flex="25" ng-model="$parent.$parent.findAllTermsInText" aria-label="Find all the terms in the text" ng-change="searchText()">
+                                    <span ng-if="findAllTermsInText">All</span><span ng-if="!findAllTermsInText">Any</span> words
                                 </md-switch>
-                            </div>
+
+                                <md-input-container flex="20">
+                                    <label>Min Date</label>
+                                  <input flex type="number" ng-model="$parent.$parent.minDate" ng-change="searchText()">
+                                </md-input-container>
+                                <md-input-container flex="20">
+                                    <label>Max Date</label>
+                                  <input flex type="number" ng-model="$parent.$parent.maxDate" ng-change="searchText()">
+                                </md-input-container>
                         </div>
 
                     </md-tab>
@@ -35,14 +40,9 @@
                                     <md-icon class="material-icons">search</md-icon>
                                 </md-button>
                             </div>
-                            <div>
-                                <md-switch ng-model="showResultsAsEmbedding" aria-label="Show results embedding">
-                                    Show results as embedding
-                                </md-switch>
-                            </div>
                         </div>
                     </md-tab>
-                    <md-tab label="Detail">
+                    <md-tab ng-if="isAuthenticated()" label="Detail">
                         <div layout="row" layout-align="space-around center">
 
                             <div flex="60">
@@ -52,7 +52,8 @@
                                         mr-drawer="drawer" mr-selector="{enabled: False}"
                                         mr-max-width="100"></div>
                                 </div>-->
-                                <md-button ng-if="current_selection.length>0" ng-click="showCropperDialog($event,current_selection[0].images[0])">
+                                <md-button ng-if="current_selection.length>0"
+                                           ng-click="showCropperDialog($event,current_selection[0].images[0])">
                                     Select Image Region
                                 </md-button>
                                 <!--<img-box ng-if="current_selection.length>0"
@@ -79,39 +80,92 @@
                     <md-tab label="Options">
                         <div layout="column" layout-align="center">
                             <div layout="row">
-                            <md-switch ng-model="showSideQuery" aria-label="Show query on the side">
-                                Show query
-                            </md-switch>
-                            <md-switch ng-model="showResultsAsEmbedding" aria-label="Show results embedding">
-                                Show embedding
-                            </md-switch>
-                                </div>
+                                <md-switch ng-model="$parent.$parent.showSideQuery" aria-label="Show query on the side">
+                                    Show query
+                                </md-switch>
+                            </div>
                             <div layout="row">
                                 <span>Number of results</span>
-                                <md-slider flex class="md-primary" md-discrete ng-model="nbResults" step="10" min="20" max="400" aria-label="Number of Results">
+                                <md-slider flex class="md-primary" md-discrete ng-model="$parent.$parent.nbResults" step="10" min="20"
+                                           max="800" aria-label="Number of Results">
                                 </md-slider>
                             </div>
                         </div>
                     </md-tab>
                 </md-tabs>
                 <div layout="column">
-                    <md-button ng-click="resetSelections()">Clear Selection</md-button>
+                    <div layout="row">
+                        <md-switch flex ng-model="$parent.$parent.showResultsAsEmbedding" aria-label="Show results embedding">
+                            Show embedding
+                        </md-switch>
+                        <md-button flex ng-click="resetSelections()">Clear Selection</md-button>
+                    </div>
                     <div layout="row">
 
-                <md-button flex ng-if="isAuthenticated()" ng-click="addAnnotation()"
-                           ng-disabled="current_selection.length<2">
-                    Save as links
-                </md-button>
-                        <md-button flex ng-click="goToGraph()" ng-disabled="current_selection.length==0">To Graph</md-button>
-                        </div>
+                        <md-button flex ng-if="isAuthenticated() && getAuthorizationLevel()>=2" ng-click="addAnnotation()"
+                                   ng-disabled="current_selection.length<2">
+                            Save as links
+                        </md-button>
+                        <!--<md-button flex ng-click="goToGraph()" ng-disabled="current_selection.length==0">Visualize Selection
+                        </md-button>-->
+                        <md-button flex ng-click="addToGroup()" ng-disabled="current_selection.length==0">Save to Group
+                        </md-button>
+                    </div>
 
                 </div>
             </md-card>
+
+            <!-- ANNOTATION MODE -->
+            <md-card flex="30" layout-gt-sm="column" ng-if="experiment_type=='annotation'">
+
+                <div layout="column">
+                    <div layout="row">
+                        <md-button flex ng-click="resetSelections()">Clear Selection</md-button>
+                    </div>
+                    <div layout="row">
+
+                        <md-button flex ng-if="isAuthenticated()" ng-click="addAnnotation()"
+                                   ng-disabled="current_selection.length<2">
+                            Save as links
+                        </md-button>
+                    </div>
+
+                </div>
+            </md-card>
+
+            <!-- SEARCH MODE -->
+            <md-card flex="30" layout-gt-sm="column" ng-if="experiment_type=='search'">
+                <md-tabs md-autoselect md-border-bottom md-dynamic-height>
+                    <md-tab label="Image">
+                        <div layout="row" layout-align="space-around center">
+
+                            <div>
+                                <md-progress-circular md-mode="indeterminate"
+                                                      ng-if="is_searching"></md-progress-circular>
+                                <md-button class="md-fab md-primary" aria-label="Search" ng-click="searchImage()"
+                                           ng-disabled="current_selection.length<1 || is_searching"
+                                           ng-if="!is_searching">
+                                    <md-icon class="material-icons">search</md-icon>
+                                </md-button>
+                            </div>
+                        </div>
+                    </md-tab>
+                </md-tabs>
+                <div layout="column">
+                    <div layout="row">
+                        <md-button flex ng-click="goToGraph()" ng-disabled="current_selection.length==0">Visualize Selection
+                        </md-button>
+                    </div>
+
+                </div>
+            </md-card>
+
             <md-card flex="30" style="overflow: auto;" class="md-padding">
                 <h2>Current selection</h2>
                 <md-list>
                     <md-list-item class="md-2-line secondary-button-padding" ng-repeat="item in current_selection">
-                        <img ng-src="{{ getImageThumbnail(item) }}" ng-click="showImageDialog($event,result.images[0].uid)"
+                        <img ng-src="{{ getImageThumbnail(item) }}"
+                             ng-click="showImageDialog($event,result.images[0].uid)"
                              class="md-avatar">
                         <div class="md-list-item-text" layout="column">
                             <h3>{{ item.author }}</h3>
@@ -129,7 +183,8 @@
                 <h2>Negative selection</h2>
                 <md-list>
                     <md-list-item class="md-2-line secondary-button-padding" ng-repeat="item in negative_selection">
-                        <img ng-src="{{ getImageThumbnail(item) }}" ng-click="showImageDialog($event,result.images[0].uid)"
+                        <img ng-src="{{ getImageThumbnail(item) }}"
+                             ng-click="showImageDialog($event,result.images[0].uid)"
                              class="md-avatar">
                         <div class="md-list-item-text" layout="column">
                             <h3>{{ item.author }}</h3>
@@ -144,9 +199,22 @@
                 </md-list>
             </md-card>
         </div>
-        <div style="height: 25px"></div>
+        <div style="height: 25px" ng-if="experiment_type!='annotation'"></div>
         <div layout="row">
             <div flex="25" ng-if="showSideQuery">
+                <div layout="column" ng-if="experiment_type=='annotation'">
+                    <div layout="row">
+                        <md-button flex ng-click="resetSelections()">Clear Selection</md-button>
+                    </div>
+                    <div layout="row">
+
+                        <md-button flex ng-if="isAuthenticated()" ng-click="addAnnotation()"
+                                   ng-disabled="current_selection.length<2">
+                            Save as links
+                        </md-button>
+                    </div>
+
+                </div>
                 <div hl-sticky="">
                     <md-tabs md-dynamic-height md-autoselect>
                         <md-tab ng-repeat="item in current_selection" label="#{{$index}}">
@@ -170,10 +238,20 @@
                         </md-tab>
                     </md-tabs>
 
+                    <div ng-if="experiment_type=='search'" layout="row" layout-align="space-around center">
+                        <md-progress-circular md-mode="indeterminate"
+                                              ng-if="is_searching"></md-progress-circular>
+                        <md-button class="md-fab md-primary" aria-label="Search" ng-click="searchImage()"
+                                   ng-disabled="current_selection.length<1 || is_searching"
+                                   ng-if="!is_searching">
+                            <md-icon class="material-icons">search</md-icon>
+                        </md-button>
+                    </div>
                 </div>
             </div>
             <div flex>
-                <div class='results' layout="row" layout-wrap layout-align="space-between" infinite-scroll='showMoreResults()' ng-if="!showResultsAsEmbedding">
+                <div class='results' layout="row" layout-wrap layout-align="space-between"
+                     infinite-scroll='showMoreResults()' ng-if="!showResultsAsEmbedding">
                     <!--<md-grid-list md-cols="4"
                           md-gutter="12px" md-row-height="1:1">
 
@@ -184,7 +262,7 @@
 
             </md-grid-list>-->
 
-                    <md-card flex="30" ng-repeat="result in results | limitTo: resultsDisplayed">
+                    <md-card flex="30" ng-repeat="result in filteredResults | limitTo: resultsDisplayed">
                         <div class="img-container">
                             <img-box element="result.images[0]"
                                      display-size="450"
@@ -193,8 +271,8 @@
 
                         <!--class="md-card-image"-->
                         <md-card-content>
-                            <h3>{{ result.author }}</h3>
-                            <p>{{ result.title }}</p>
+                            <h3 ng-if="!experiment_mode">{{ result.author }}</h3>
+                            <p ng-if="!experiment_mode">{{ result.title }}</p>
                             <md-button class="md-icon-button" ng-click="addToSelection(result, current_selection)"
                                        ng-disabled="isInSelection(result, current_selection) || isInSelection(result, negative_selection)">
                                 <md-icon aria-label="Add to selection" class="material-icons">add_circle</md-icon>
@@ -210,13 +288,18 @@
                                 <md-icon aria-label="Remove from any selection" class="material-icons">cancel</md-icon>
                             </md-button>
 
-                            <a ng-href="{{ result.related }}" target="_blank"><img ng-src="{{result.logo}}" width="25%"/></a>
+                            <a ng-href="{{ result.related }}" target="_blank"><img ng-src="{{result.logo}}"
+                                                                                   width="25%"/></a>
 
                         </md-card-content>
 
                     </md-card>
                 </div>
-                <tsne-view ng-if="showResultsAsEmbedding" elements="results" selection="current_selection" links="links"
+                <tsne-view ng-if="showResultsAsEmbedding"
+                           elements="results"
+                           selection="current_selection"
+                           links="links"
+                           index-key="indexKey"
                            negative-selection="negative_selection">
                 </tsne-view>
             </div>

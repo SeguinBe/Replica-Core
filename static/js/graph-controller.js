@@ -43,28 +43,38 @@ angular.module('replicaModule')
             return [param];
         }
 
-        $scope.queriesUid = parseParams($stateParams.uid);
+        $scope.groupUid = $stateParams.groupUid;
+        $scope.groupData = {};
+
+
 
         $scope.refreshData = function () {
-            $http.post('api/graph', {image_uids: $scope.queriesUid}).then(
-                function (response) {
-                    //TODO Merge more properly so positions are not reseted
-                    $scope.data = response.data;
-                    //clear arrays
-                    /*$scope.data.nodes.length = 0;
-                     $scope.data.links.length = 0;
-                     Array.prototype.push.apply($scope.data.nodes, response.data.nodes);
-                     Array.prototype.push.apply($scope.data.links, response.data.links);
-                     var map = new Object();
-                     for (var i=0; i<$scope.data.nodes.length;i++) {
-                     map[$scope.data.nodes[i].uid] = $scope.data.nodes[i]
-                     }
-                     for (i=0; i<$scope.data.links.length;i++) {
-                     $scope.data.links[i].source = map[$scope.data.links[i].source];
-                     $scope.data.links[i].target = map[$scope.data.links[i].target];
-                     }*/
+            $http.get('api/group/'+$scope.groupUid).then(
+                function(response) {
+                    $scope.groupData = response.data;
+                    $scope.queriesUid = $scope.groupData.images.map(function(img) {return img.uid;});
+                    $http.post('api/graph', {image_uids: $scope.queriesUid}).then(
+                        function (response) {
+                            //TODO Merge more properly so positions are not reseted
+                            $scope.data = response.data;
+                            //clear arrays
+                            /*$scope.data.nodes.length = 0;
+                             $scope.data.links.length = 0;
+                             Array.prototype.push.apply($scope.data.nodes, response.data.nodes);
+                             Array.prototype.push.apply($scope.data.links, response.data.links);
+                             var map = new Object();
+                             for (var i=0; i<$scope.data.nodes.length;i++) {
+                             map[$scope.data.nodes[i].uid] = $scope.data.nodes[i]
+                             }
+                             for (i=0; i<$scope.data.links.length;i++) {
+                             $scope.data.links[i].source = map[$scope.data.links[i].source];
+                             $scope.data.links[i].target = map[$scope.data.links[i].target];
+                             }*/
+                        }, function (response) {
+                            $scope.showErrorToast("Error retrieving graph data", response);
+                        });
                 }, function (response) {
-                    $scope.showErrorToast("Error retrieving data", response);
+                    $scope.showErrorToast("Error retrieving group data", response);
                 });
         };
         $scope.refreshData();

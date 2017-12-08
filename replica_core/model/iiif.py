@@ -5,7 +5,7 @@ from neomodel import StringProperty, DateTimeProperty, ArrayProperty, UniqueIdPr
 from typing import List, Union, Tuple, Optional
 import re
 from flask_restplus import fields, Model
-from .base import BaseElement
+from .base import BaseElement, SerializationLevel
 from .user import GroupContains
 
 
@@ -41,22 +41,57 @@ class IIIFMetadata:
         metadata_dict = {d['label']: d['value'] for d in self.raw_metadata}
         return metadata_dict.get(label, default)
 
-    def get_date_from_fields(self, labels: List[str]):
-        metadata_dict = {d['label']: d['value'] for d in self.raw_metadata}
+    def get_date_range_from_fields(self, labels: List[str]) -> (Optional[int], Optional[int]):
+        metadata_dict = {d['label'].lower(): d['value'] for d in self.raw_metadata}
         for l in labels:
-            maybe_date = self._get_date_from_value(metadata_dict.get(l))
-            if maybe_date is not None:
-                return maybe_date
-        return None
+            maybe_date_range = self._get_date_range_from_value(metadata_dict.get(l.lower()))
+            if maybe_date_range is not None:
+                return maybe_date_range
+        return None, None
 
     @staticmethod
-    def _get_date_from_value(f: str) -> Optional[int]:
+    def _get_date_range_from_value(f: str) -> Optional[Tuple[int, int]]:
         if isinstance(f, int):
-            return f
+            return f, f
         if isinstance(f, str):
-            all_dates = re.findall('[0-9]{4}', f)
-            if len(all_dates) > 0:
-                return round(sum([int(d) for d in all_dates])/len(all_dates))
+            # Just a number
+            if f.isdigit():
+                return int(f), int(f)
+            default = '\?+'
+            date = '[0-9]+'
+            # 1240-1320 , ????-1200, ???-1234
+            pattern = '({default}|{date})-({default}|{date})'.format(default=default, date=date)
+            if re.fullmatch(pattern, f):
+                s1, s2 = f.split('-')
+                b, e = None, None
+                if s1.isdigit():
+                    b = int(s1)
+                if s2.isdigit():
+                    e = int(s2)
+                # Cases of 1722-24
+                if e is not None and b is not None:
+                    if e < 100:
+                        e += b % 100
+                    assert b < e, (f, b, e)
+                return b, e
+            # c. 1565
+            pattern = '(c|c.|circa)\W?{date}'.format(date=date)
+            if re.fullmatch(pattern, f):
+                s1 = re.findall(date, f)[0]
+                return int(s1)-5, int(s1)+5
+            # 1920s
+            pattern = '{date}s'.format(date=date)
+            if re.fullmatch(pattern, f):
+                s1 = re.findall(date, f)[0]
+                return int(s1), int(s1)+10
+
+            #all_dates = re.findall('[0-9]{4}', f)
+            #if len(all_dates) == 1:
+            #    d = int(all_dates[0])
+            #    return d, d
+            #if len(all_dates) == 2:
+            #    d_b, d_e = [int(d) for d in all_dates]
+            #    return d_b, d_e
         return None
 
 
@@ -68,10 +103,10 @@ class Collection(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
     elements = RelationshipTo('CHO', 'COLL_CONTAINS')
 
     @classmethod
-    def _get_schema(cls, api, extended=False):
-        schema = super()._get_schema(api, extended)
+    def _get_schema(cls, api, level=SerializationLevel.DEFAULT):
+        schema = super()._get_schema(api, level)
         schema['nb_elements'] = fields.Integer(required=True, description='Number of elements in the collection')
-        if extended:
+        if level >= SerializationLevel.EXTENDED:
             schema['parent_collection_hierarchy'] = fields.List(fields.Nested(api.models[str(Collection.__name__)]))
         return schema
 
@@ -82,10 +117,10 @@ class Collection(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
         RETURN COUNT(n1)""")
         return results[0][0]
 
-    def to_dict(self, extended=False):
-        result = super().to_dict(extended)
+    def to_dict(self, level=SerializationLevel.DEFAULT):
+        result = super().to_dict(level)
         result['nb_elements'] = len(self.elements)
-        if extended:
+        if level >= SerializationLevel.EXTENDED:
             result['parent_collection_hierarchy'] = [d.to_dict() for d in self.get_parent_collections_hierarchy()]
         return result
 
@@ -105,7 +140,9 @@ class Collection(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
 
 class CHO(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
     """Rough Equivalent of the Manifest element in IIIF Presentation API"""
+    # __do_not_marshall_relationships__ = ['images']
     __non_extended_relationships__ = ['images']
+    __relationship_serialization__ = {'images': SerializationLevel.BASE}
 
     # IIIF data
     related = StringProperty()
@@ -113,7 +150,8 @@ class CHO(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
     # Parsed Metadata
     author = StringProperty()
     title = StringProperty()
-    date = IntegerProperty()
+    date_begin = IntegerProperty()
+    date_end = IntegerProperty()
 
     # Relationships
     images = RelationshipTo('Image', 'IS_SHOWN_BY', cardinality=neomodel.OneOrMore)
@@ -145,16 +183,18 @@ class CHO(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
         return CHO.inflate(results[0][0])
 
     @classmethod
-    def _get_schema(cls, api, extended=False):
-        schema = super()._get_schema(api, extended)
-        if extended:
+    def _get_schema(cls, api, level=SerializationLevel.DEFAULT):
+        schema = super()._get_schema(api, level)
+        #schema['images'] = fields.List(fields.Nested(api.models[str(Image.__name__)]),
+        #                                                        required=True)
+        if level >= SerializationLevel.EXTENDED:
             schema['parent_collection_hierarchy'] = fields.List(fields.Nested(api.models[str(Collection.__name__)]),
                                                                 required=True)
         return schema
 
-    def to_dict(self, extended=False):
-        result = super().to_dict(extended)
-        if extended:
+    def to_dict(self, level=SerializationLevel.DEFAULT):
+        result = super().to_dict(level)
+        if level >= SerializationLevel.EXTENDED:
             result['parent_collection_hierarchy'] = [d.to_dict() for d in self.get_parent_collections_hierarchy()]
         return result
 
@@ -168,8 +208,9 @@ class CHO(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
 
 
 class Image(StructuredNode, BaseElement):
-    __do_not_marshall_relationships__ = ['links']
-    # __non_extended_relationships__ = ['cho']
+    __do_not_marshall_relationships__ = ['links', 'groups']
+    __non_extended_relationships__ = ['cho']
+    __relationship_serialization__ = {'cho': SerializationLevel.BASE}
 
     # Location of image (one of the two at least)
     iiif_url = StringProperty(required=True, unique_index=True, help_text='IIIF Url of the Resource')
@@ -187,16 +228,15 @@ class Image(StructuredNode, BaseElement):
 
     links = RelationshipFrom('.link.VisualLink', 'LINKS')
 
-
     @classmethod
-    def _get_schema(cls, api, extended=False):
-        schema = super()._get_schema(api, extended)
-        if extended:
+    def _get_schema(cls, api, level=False):
+        schema = super()._get_schema(api, level)
+        if level >= SerializationLevel.EXTENDED:
             schema['links'] = fields.List(fields.Nested(api.models['Link_from_source']), required=True)
         return schema
 
-    def to_dict(self, extended=False):
-        result = super().to_dict(extended)
-        if extended:
+    def to_dict(self, level=SerializationLevel.DEFAULT):
+        result = super().to_dict(level)
+        if level >= SerializationLevel.EXTENDED:
             result['links'] = [l.dict_from_source(self) for l in self.links]
         return result

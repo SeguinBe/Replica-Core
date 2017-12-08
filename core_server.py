@@ -7,8 +7,14 @@ import requests
 from collections import namedtuple
 from functools import partial
 import json
+from threading import Lock
+try:
+    import better_exceptions
+except:
+    pass
 
 from replica_core import model, auth
+from replica_core.model import SerializationLevel
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 app.config.SWAGGER_UI_JSONEDITOR = True
@@ -32,20 +38,16 @@ app.config.from_object('config')
 
 neomodel.config.DATABASE_URL = app.config['DATABASE_URL']
 
-model.Image.add_schema(api)
-model.Collection.add_schema(api)
-model.CHO.add_schema(api)
-model.Group.add_schema(api)
-model.VisualLink.add_schema(api)
-model.TripletComparison.add_schema(api)
+classes = [model.Image, model.Collection, model.CHO, model.Group,
+           model.VisualLink, model.PersonalLink, model.TripletComparison, model.User]
+for c in classes:
+    c.add_schema(api, level=model.SerializationLevel.BASE)
+for c in classes:
+    c.add_schema(api, level=model.SerializationLevel.NORMAL)
 api.clone('Link_from_source', api.models['VisualLink'], {'image': fields.Nested(api.models['Image'])})
-model.User.add_schema(api)
+for c in classes:
+    c.add_schema(api, level=model.SerializationLevel.EXTENDED)
 
-model.Image.add_schema(api, extended=True)
-model.Collection.add_schema(api, extended=True)
-model.CHO.add_schema(api, extended=True)
-model.VisualLink.add_schema(api, extended=True)
-model.TripletComparison.add_schema(api, extended=True)
 
 model_box = api.model('Box', {'y': fields.Float(required=True),
                               'x': fields.Float(required=True),
@@ -59,6 +61,8 @@ model_cho_box['images'].container.model = model_img_box
 
 model_collections = api.model('Collections',
                               {'collections': fields.List(fields.Nested(api.models['Collection']), required=True)})
+model_groups = api.model('Groups',
+                              {'groups': fields.List(fields.Nested(api.models['Group']), required=True)})
 model_links = api.model('Links',
                         {'links': fields.List(fields.Nested(api.models['VisualLink_ext']), required=True)})
 model_text_search = api.model('TextSearch',
@@ -67,6 +71,8 @@ model_image_search = api.model('ImageSearch',
                                {'results': fields.List(fields.Nested(api.models['CHO']))})
 model_image_search_region = api.model('ImageSearchRegion',
                                       {'results': fields.List(fields.Nested(model_cho_box))})
+model_simple_uid = api.model('SimpleUid',
+                                      {'uid': fields.String(required=True, description='Unique Identifier')})
 
 model_auth = api.model('Auth', {'token': fields.String(required=True,
                                                        description="JSON Web Token after successful authentication")})
@@ -131,7 +137,88 @@ class CollectionResource(Resource):
         coll = model.Collection.nodes.get_or_none(uid=uid)  # type: model.Collection
         if coll is None:
             raise BadRequest("{} is not a collection".format(uid))
-        return coll.to_dict(extended=True)
+        return coll.to_dict(level=SerializationLevel.EXTENDED)
+
+
+@api.route('/api/group/<string:uid>')
+class GroupResrouce(Resource):
+    @api.marshal_with(api.models['Group_ext'])
+    def get(self, uid):
+        group = model.Group.nodes.get_or_none(uid=uid)  # type: model.Group
+        if group is None:
+            raise BadRequest("{} is not a group".format(uid))
+        return group.to_dict(level=SerializationLevel.EXTENDED)
+
+    parser = api.parser()
+    parser.add_argument('image_uids', type=list, required=True, location='json')
+    parser.add_argument('label', type=str, required=True, location='json')
+    parser.add_argument('notes', type=str, default='', location='json')
+
+    @api.expect(parser)
+    @auth.login_required
+    def put(self, uid):
+        current_user = model.User.nodes.get(uid=g.user_uid)
+        group = model.Group.nodes.get_or_none(uid=uid)  # type: model.Group
+        if group.owner.get() != current_user:
+            raise BadRequest('Unauthorized')
+        if group is None:
+            raise BadRequest("{} is not a group".format(uid))
+        args = self.parser.parse_args()
+        try:
+            images = [model.Image.nodes.get(uid=uid) for uid in args['image_uids']]
+        except Exception as e:
+            raise BadRequest('Invalid image uid')
+        group.update_group(args['label'], args['notes'], images)
+
+    @auth.login_required
+    def delete(self, uid):
+        current_user = model.User.nodes.get(uid=g.user_uid)
+        group = model.Group.nodes.get_or_none(uid=uid)  # type: model.Group
+        if group.owner.get() != current_user:
+            raise BadRequest('Unauthorized')
+        group.delete()
+
+
+@api.route('/api/group/<string:uid>/add')
+class AddImagesGroupResrouce(Resource):
+    parser = api.parser()
+    parser.add_argument('image_uids', type=list, required=True, location='json')
+
+    @api.expect(parser)
+    @auth.login_required
+    def post(self, uid):
+        current_user = model.User.nodes.get(uid=g.user_uid)
+        group = model.Group.nodes.get_or_none(uid=uid)  # type: model.Group
+        if group.owner.get() != current_user:
+            raise BadRequest('Unauthorized')
+        if group is None:
+            raise BadRequest("{} is not a group".format(uid))
+        args = self.parser.parse_args()
+        try:
+            images = [model.Image.nodes.get(uid=uid) for uid in args['image_uids']]
+        except Exception as e:
+            raise BadRequest('Invalid image uid')
+        group.add_images(images)
+
+
+@api.route('/api/group')
+class CreateGroupResource(Resource):
+    parser = api.parser()
+    parser.add_argument('image_uids', type=list, required=True, location='json')
+    parser.add_argument('label', type=str, required=True, location='json')
+
+    @api.marshal_with(api.models['Group'])
+    @api.expect(parser)
+    @auth.login_required
+    def post(self):
+        current_user = model.User.nodes.get(uid=g.user_uid)
+        args = self.parser.parse_args()
+        try:
+            images = [model.Image.nodes.get(uid=uid) for uid in args['image_uids']]
+        except Exception as e:
+            raise BadRequest('Invalid image uid')
+        group = model.Group.create_group(current_user, args['label'], images)
+        return group.to_dict()
 
 
 @api.route('/api/element/<string:uid>')
@@ -141,7 +228,7 @@ class ElementResource(Resource):
         cho = model.CHO.nodes.get_or_none(uid=uid)  # type: model.CHO
         if cho is None:
             raise BadRequest("{} is not an element".format(uid))
-        return cho.to_dict(extended=True)
+        return cho.to_dict(level=SerializationLevel.EXTENDED)
 
 
 @api.route('/api/element/random')
@@ -154,7 +241,7 @@ class LinkResource(Resource):
     def get(self):
         args = self.parser.parse_args()
         chos = model.CHO.get_random(limit=args['nb_elements'])
-        return [cho.to_dict(extended=True) for cho in chos]
+        return [cho.to_dict(level=SerializationLevel.EXTENDED) for cho in chos]
 
 
 @api.route('/api/image/<string:uid>')
@@ -164,7 +251,7 @@ class ImageResource(Resource):
         img = model.Image.nodes.get_or_none(uid=uid)  # type: model.Image
         if img is None:
             raise BadRequest("{} is not an image".format(uid))
-        return img.to_dict(extended=True)
+        return img.to_dict(level=SerializationLevel.EXTENDED)
 
 
 @api.route('/api/link/<string:uid>')
@@ -174,7 +261,7 @@ class LinkResource(Resource):
         link = model.VisualLink.nodes.get_or_none(uid=uid)  # type: model.VisualLink
         if link is None:
             raise BadRequest("{} is not a link".format(uid))
-        return link.to_dict(extended=True)
+        return link.to_dict(level=SerializationLevel.EXTENDED)
 
         # @auth.login_required
         # def delete(self, uid):
@@ -192,6 +279,7 @@ class LinkResource(Resource):
     parser.add_argument('img1_uid', type=str, required=True, location='json')
     parser.add_argument('img2_uid', type=str, required=True, location='json')
     parser.add_argument('type', type=str, required=True, location='json')
+    parser.add_argument('personal', type=bool, default=False, location='json')
 
     @api.expect(parser)
     @auth.login_required
@@ -209,16 +297,23 @@ class LinkResource(Resource):
         if not user:
             raise BadRequest('User does not exist')
 
-        # Create the proposal first
         img1 = model.Image.nodes.get_or_none(uid=img1_uid)
         img2 = model.Image.nodes.get_or_none(uid=img2_uid)
-        link = model.VisualLink.create_proposal(img1, img2, user, exist_ok=True)
 
-        if link.type == model.VisualLink.Type.PROPOSAL:
-            link.annotate(user, type)
-            return {"uid": link.uid}
+        if args['personal']:
+            link = model.PersonalLink.create_link(img1, img2, user)
+            return {'uid': link.uid}
         else:
-            raise BadRequest("Link already exists uid:{}, type:{}".format(link.uid, link.type))
+            # Create the proposal first
+            link = model.VisualLink.create_proposal(img1, img2, user, exist_ok=True)
+
+            if link.type == model.VisualLink.Type.PROPOSAL:
+                if not user.can_annotate_links():
+                    raise BadRequest("Forbidden action, user account does not have the right privileges.")
+                link.annotate(user, type)
+                return {"uid": link.uid}
+            else:
+                raise BadRequest("Link already exists uid:{}, type:{}".format(link.uid, link.type))
 
 
 @api.route('/api/proposal/create')
@@ -255,13 +350,14 @@ class LinkResource(Resource):
     def get(self):
         args = self.parser.parse_args()
         links = model.VisualLink.get_random_proposals(limit=args['nb_proposals'])
-        return [link.to_dict(extended=True) for link in links]
+        return [link.to_dict(level=SerializationLevel.EXTENDED) for link in links]
 
 
 @api.route('/api/link/related')
 class LinkResource(Resource):
     parser = api.parser()
     parser.add_argument('image_uids', type=list, required=True, location='json')
+    parser.add_argument('personal', type=bool, default=False, location='json')
 
     graph_link_model = api.model('GraphLinkData', {'source': fields.String,
                                                    'target': fields.String,
@@ -271,12 +367,20 @@ class LinkResource(Resource):
 
     @api.marshal_with(related_data)
     @api.expect(parser)
+    @auth.login_required
     def post(self):
         args = self.parser.parse_args()
-        _, links = model.get_subgraph(args['image_uids'], graph_depth=0)
+        user_uid = g.user_uid
+        user = model.User.nodes.get_or_none(uid=user_uid)
+        if not user:
+            raise BadRequest('User does not exist')
+        if not args['personal']:
+            _, links = model.get_subgraph(args['image_uids'], graph_depth=0)
+        else:
+            _, links = model.get_subgraph_personal(args['image_uids'], user, graph_depth=0)
         return {'links': [{'source': uid1,
-                       'target': uid2,
-                       'data': l.to_dict()} for uid1, uid2, l in links]}
+                           'target': uid2,
+                           'data': l.to_dict()} for uid1, uid2, l in links]}
 
 
 @api.route('/api/triplet/proposal/random')
@@ -289,7 +393,7 @@ class LinkResource(Resource):
     def get(self):
         args = self.parser.parse_args()
         links = model.TripletComparison.get_random_proposals(limit=args['nb_proposals'])
-        return [link.to_dict(extended=True) for link in links]
+        return [link.to_dict(level=SerializationLevel.EXTENDED) for link in links]
 
 
 @api.route('/api/triplet/<string:uid>')
@@ -299,7 +403,7 @@ class LinkResource(Resource):
         link = model.TripletComparison.nodes.get_or_none(uid=uid)  # type: model.TripletComparison
         if link is None:
             raise BadRequest("{} is not a triplet".format(uid))
-        return link.to_dict(extended=True)
+        return link.to_dict(level=SerializationLevel.EXTENDED)
 
     # @auth.login_required
     # def delete(self, uid):
@@ -353,6 +457,9 @@ class SearchTextResource(Resource):
     parser = api.parser()
     parser.add_argument('query', type=str, required=True)
     parser.add_argument('nb_results', type=int, default=40)
+    parser.add_argument('all_terms', type=int, default=1)
+    parser.add_argument('min_date', type=int, default=0)
+    parser.add_argument('max_date', type=int, default=2000)
 
     @api.marshal_with(model_text_search)
     @api.expect(parser)
@@ -361,29 +468,55 @@ class SearchTextResource(Resource):
         q = args['query']
         nb_results = args['nb_results']
         if True:
+            elastic_search_query = {
+                "query": {
+                      # "multi_match": {
+                      #     "query": q,
+                      #     #"type": "most_fields",
+                      #     "fuzziness": "AUTO",  # 1
+                      #     "fields": [
+                      #         "author",
+                      #         "title"
+                      #     ],
+                      #     "operator":   "and"
+                      # }
+
+                      # "match": {
+                      #     "_all": {
+                      #         "query": q,
+                      #         "operator": "and" if args["all_terms"] == 1 else "or",
+                      #         # "fuzziness": "AUTO",
+                      #     }
+                      # }
+                     "bool": {
+                         "must": [
+                             {"match": {
+                              "_all": {
+                                  "query": q,
+                                  "operator": "and" if args["all_terms"] == 1 else "or",
+                                  # "fuzziness": "AUTO",
+                              }
+                             }},
+                             #{"range": {
+                             #   "date": {
+                             #       "gte": args['min_date'],
+                             #       "lte": args['max_date']
+                             #   }
+                             #}
+                            #},
+                            #{'match': {"attribution": {"query": 'Web Gallery of Art'}}}
+                            ],
+                         #"filter": ,
+                         "must_not": [{'match': {"title": {"query": 'detail'}}},
+                                      #{'match': {"attribution": {"query": 'Fondazione Giorgio Cini'}}}
+                                      ]
+
+                     }
+                  },
+                  "size": nb_results
+            }
             es_results = requests.get('{}/_search'.format(app.config['ELASTICSEARCH_URL']),
-                                      json={
-                                          "query": {
-                                              # "multi_match": {
-                                              #     "query": q,
-                                              #     #"type": "most_fields",
-                                              #     "fuzziness": "AUTO",  # 1
-                                              #     "fields": [
-                                              #         "author",
-                                              #         "title"
-                                              #     ],
-                                              #     "operator":   "and"
-                                              # }
-                                              "match": {
-                                                  "_all": {
-                                                      "query": q,
-                                                      "operator": "and",
-                                                      #"fuzziness": "AUTO",
-                                                  }
-                                              }
-                                          },
-                                          "size": nb_results
-                                      })
+                                      json=elastic_search_query)
             if es_results.status_code != 200:
                 raise BadRequest('ElasticSearch query failed')
             ids = [int(r['_id']) for r in es_results.json()['hits']['hits']]
@@ -484,7 +617,7 @@ class AuthenticationResource(Resource):
             raise BadRequest("Unknwon username : {}".format(username))
         if password_sha256 != user.password_sha256:
             raise BadRequest("Invalid password")
-        return {'token': auth.create_token(user.uid)}
+        return {'token': auth.create_token(user.uid, user.username, user.authorization_level)}
 
 
 @api.route('/api/user/current')
@@ -494,6 +627,16 @@ class CurrentUserResource(Resource):
     def get(self):
         current_user = model.User.nodes.get(uid=g.user_uid)
         return current_user.to_dict()
+
+
+@api.route('/api/user/groups')
+class CurrentUserGroupsRessource(Resource):
+    @api.marshal_with(api.models['Groups'])
+    @auth.login_required
+    def get(self):
+        current_user = model.User.nodes.get(uid=g.user_uid)
+
+        return {'groups': [group.to_dict() for group in current_user.groups]}
 
 
 @api.route('/api/graph')
@@ -530,6 +673,7 @@ class GraphResource(Resource):
         }
 
 
+_log_lock = Lock()
 @api.route('/api/log')
 class GraphResource(Resource):
     parser = api.parser()
@@ -541,9 +685,10 @@ class GraphResource(Resource):
         current_user = model.User.nodes.get(uid=g.user_uid)
         data = self.parser.parse_args()['data']
         data['user_uid'] = current_user.username
-        with open(app.config['LOG_FILE'], 'a') as f:
-            f.write(json.dumps(data))
-            f.write('\n')
+        with _log_lock:
+            with open(app.config['LOG_FILE'], 'a') as f:
+                f.write(json.dumps(data))
+                f.write('\n')
 
 
 if __name__ == '__main__':

@@ -18,13 +18,15 @@ replicaModule.config(function ($stateProvider, $urlRouterProvider, $authProvider
     $stateProvider
         .state('search', {
             controller: 'searchController',
-            url: "/search?q&n&image_url",
+            url: "/search?q&n&image_url&index&expmode",
             templateUrl: "partials/search.html",
             reloadOnSearch: false,
             params: {
                 q: null,
                 n: null,
-                image_url: null
+                image_url: null,
+                index: null,
+                expmode: null
             },
             resolve: {
                 loginRequired: loginRequired
@@ -38,13 +40,23 @@ replicaModule.config(function ($stateProvider, $urlRouterProvider, $authProvider
                 loginRequired: loginRequired
             }
         })
+        .state('groups-list', {
+            controller: 'groupsListController',
+            url: "/groups-list",
+            templateUrl: "partials/groups_list.html",
+            resolve: {
+                loginRequired: loginRequired
+            }
+        })
+        .state('group', {
+            controller: 'groupEditController',
+            url: "/group/{groupUid}",
+            templateUrl: "partials/group_edit.html",
+        })
         .state('graph', {
             controller: 'graphController',
-            url: "/graph?uid",
-            templateUrl: "partials/graph.html",
-            params: {
-                uid: null
-            }
+            url: "/graph/{groupUid}",
+            templateUrl: "partials/graph.html"
         })
         .state('stats', {
             controller: 'statsController',
@@ -95,7 +107,13 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
     $scope.getImageThumbnail = function(e) {
         return e.images[0].iiif_url + "/full/450,/0/default.jpg";
     };
+    $scope.getImageThumbnail2 = function(e) {
+        return e.iiif_url + "/full/450,/0/default.jpg";
+    };
     $scope.getImage = function (e) {
+        return e.images[0].iiif_url + "/full/!1000,1000/0/default.jpg";
+    };
+    $scope.getImage2 = function (e) {
         return e.images[0].iiif_url + "/full/!1000,1000/0/default.jpg";
     };
     $scope.showSimpleToast = function (text) {
@@ -146,6 +164,7 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
             templateUrl: 'dialog/image_dialog.tmpl.html',
             locals: {
                 image_uid: image_uid,
+                rootScope: $scope
                 //getImage: $scope.getImage
             },
             parent: angular.element(document.body),
@@ -155,7 +174,7 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
             multiple: true
         });
 
-        function DialogController($scope, $mdDialog, locals) {
+        function DialogController($scope, $mdDialog, locals, rootScope) {
             $scope.getImage = function (e) {
                 if (e != undefined)
                     return e.iiif_url + "/full/!1000,1000/0/default.jpg";
@@ -164,6 +183,7 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
             };
             $scope.locals = locals;
             $scope.element = null;
+            $scope.showImageDialog = rootScope.showImageDialog;
             $http.get('api/image/'+locals.image_uid).then(
             function (response) {
                 $scope.element = response.data;
@@ -221,6 +241,18 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
 
     $scope.isAuthenticated = function() {
         return $auth.isAuthenticated();
+    };
+
+    $scope.getUsername = function() {
+        return $auth.getPayload().username;
+    };
+
+    $scope.getUserUid = function() {
+        return $auth.getPayload().user_uid;
+    };
+
+    $scope.getAuthorizationLevel = function() {
+        return $auth.getPayload().authorization_level;
     };
 
     $scope.logOut = function() {
@@ -308,6 +340,73 @@ replicaModule.controller('proposalsListController', function ($scope, $http, $md
             })
     };
     $scope.refreshProposals();
+});
+
+
+replicaModule.controller('groupsListController', function ($scope, $http, $mdDialog, $cookies, $mdToast, $state) {
+    $scope.groups = [];
+    $scope.refreshGroups = function () {
+        $http.get('api/user/groups').then(
+            function (response) {
+                $scope.groups = response.data.groups;
+            }, function (response) {
+                $scope.showErrorToast("Fetching groups failed", response);
+            });
+    };
+    $scope.deleteGroup = function (group_uid) {
+        $scope.confirmDialog('Delete', 'Are you sure you want to delete this group?').then(
+            function () {
+                $http.delete('api/group/'+group_uid).then(
+                function (response) {
+                    $scope.alertDialog('Alert', 'Group deleted');
+                    $scope.refreshGroups();
+                }, function (response) {
+                    $scope.showErrorToast("Delete operation failed", response);
+            });
+            }
+        );
+    };
+    $scope.refreshGroups();
+});
+
+replicaModule.controller('groupEditController', function ($scope, $http, $mdDialog, $cookies,
+                                                          $mdToast, $state, $stateParams) {
+    $scope.groupUid = $stateParams.groupUid;
+    $scope.groupData = {};
+    $scope.refreshGroup = function () {
+        $http.get('api/group/'+$scope.groupUid).then(
+            function (response) {
+                $scope.groupData = response.data;
+            }, function (response) {
+                $scope.showErrorToast("Fetching group failed", response);
+            });
+    };
+    $scope.removeFromSelection = function (item, sel) {
+        for (var n = 0; n < sel.length; n++) {
+            if (sel[n].uid == item.uid) {
+                sel.splice(n, 1);
+                break;
+            }
+        }
+    };
+    $scope.isOwner = function() {
+        return $scope.groupData.owner.uid == $scope.getUserUid();
+    };
+    $scope.saveGroup = function() {
+        $http.put('api/group/'+$scope.groupUid,
+            {
+                label: $scope.groupData.label,
+                notes: $scope.groupData.notes,
+                image_uids: $scope.groupData.images.map(function (i) { return i.uid;})
+            }
+        ).then(
+            function (response) {
+                $scope.showSimpleToast('Saving success');
+            }, function (response) {
+                $scope.showErrorToast("Saving failed", response);
+            });
+    };
+    $scope.refreshGroup();
 });
 
 

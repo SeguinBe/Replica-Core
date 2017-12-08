@@ -83,7 +83,7 @@ angular.module('replicaModule')
                     }
                     //console.log(model.iter);
                 })
-                .force('collide', d3.forceCollide().radius(function(d) {return image_size/2;}))
+                .force('collide', d3.forceCollide().radius(function(d) {return image_size/2*1.2;}))
                 .on("tick", ticked);
 
 
@@ -143,7 +143,11 @@ angular.module('replicaModule')
                 if (scope.elements.length == 0)
                     return;
 
-                $http.post("/api/image/distance_matrix", {image_uids: scope.elements.map(function(d) {return d.images[0].uid})}).then(
+                $http.post("/api/image/distance_matrix",
+                    {
+                        image_uids: scope.elements.map(function(d) {return d.images[0].uid}),
+                        index: scope.indexKey
+                    }).then(
                     function (response) {
                         model.initDataDist(response.data.distances);
                         model.iter=0;
@@ -224,7 +228,7 @@ angular.module('replicaModule')
         return {
             link: link,
             restrict: 'E',
-            scope: {selection: '=', negativeSelection: '=', elements: '=', links: '='},
+            scope: {selection: '=', negativeSelection: '=', elements: '=', links: '=', indexKey: '='},
             controller: function($scope) {
 
             }

@@ -1,0 +1,14 @@
+<md-content class="md-padding">
+    <h1 flex-offset="10">My groups ({{ groups.length }})</h1>
+
+    <md-card flex="80" flex-offset="10" layout-gt-sm="column" class="md-padding" ng-repeat="group in groups track by $index">
+        <h3>{{ group.label }}</h3>
+        <div class='md-padding' layout="row">
+            <p>{{ group.nb_images }} images</p>
+            <md-button class="md-raised"  ui-sref="graph({groupUid: group.uid})">View</md-button>
+            <md-button class="md-raised"  ui-sref="group({groupUid: group.uid})">List/Edit</md-button>
+            <div flex></div>
+            <md-button class="md-raised md-warn" ng-click="deleteGroup(group.uid)">Delete</md-button>
+        </div>
+    </md-card>
+</md-content>

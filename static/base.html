@@ -44,7 +44,7 @@
             </a>
         </h4>
         <div flex="5"></div>
-        <h2>
+        <h2 ng-if="isAuthenticated() && getAuthorizationLevel()>=2">
             <a ui-sref="proposals-list">
                 List of Proposals
             </a>
@@ -53,6 +53,12 @@
         <h2>
             <a ui-sref="stats">
                 Stats
+            </a>
+        </h2>
+        <div flex="5"></div>
+        <h2 ng-if="isAuthenticated()">
+            <a ui-sref="groups-list">
+                My Groups
             </a>
         </h2>
         <div ng-if="!isAuthenticated()" flex="5"></div>
@@ -64,7 +70,7 @@
         <div ng-if="isAuthenticated()" flex="5"></div>
         <h2 ng-if="isAuthenticated()">
             <a href="" ng-click="logOut()">
-                Logout
+                Logged as {{ getUsername() }}
             </a>
         </h2>
     </div>

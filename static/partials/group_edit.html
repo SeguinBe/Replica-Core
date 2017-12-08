@@ -1,0 +1,38 @@
+<md-content class="md-padding">
+    <md-card flex="80" flex-offset="10" layout-gt-sm="column" class="md-padding">
+        <div layout="row">
+            <h3 flex>Group Id : {{ groupData.uid}} | {{groupData.images.length}} images</h3>
+            <md-button ng-if="isOwner()" ng-click="saveGroup()" class="md-raised md-primary">
+                    Save
+            </md-button>
+            <!--<md-button ng-if="isOwner()" ng-click="deleteAnnotation()" class="md-raised md-warn">
+                    Delete
+            </md-button>-->
+        </div>
+        <md-input-container flex="40">
+            <label>Label</label>
+            <input ng-model="groupData.label" ng-readonly="!isOwner()">
+        </md-input-container>
+        <md-input-container flex="70"  class="md-block">
+            <label>Notes</label>
+            <textarea ng-model="groupData.notes" md-maxlength="1500"  ng-readonly="!isOwner()" rows="5"></textarea>
+        </md-input-container>
+        <h4>Images</h4>
+        <div class='md-padding' layout="row" md-scroll-x layout-wrap>
+            <md-card flex="20" ng-repeat="item in groupData.images">
+                <div class="img-container square"><img ng-src="{{ getImageThumbnail2(item) }}"
+                                                       ng-click="showImageDialog($event,item.uid)"></div>
+                <md-card-content>
+                    <h3>{{ item.cho.author }}</h3>
+                    <p>{{ item.cho.title }}</p>
+                <md-button ng-click="removeFromSelection(item, groupData.images)"
+                           class="md-icon-button md-primary"
+                           aria-label="Remove"
+                           ng-if="isOwner()">
+                    <md-icon aria-label="Remove element" class="material-icons">delete</md-icon>
+                </md-button>
+                    </md-card-content>
+            </md-card>
+        </div>
+    </md-card>
+</md-content>

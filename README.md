@@ -20,12 +20,12 @@ The image similarity system is a separate server.
 
 
 - Add the schemas constraints from the ORM :
-   `neomodel_install_labels app.py replica_core --db bolt://<neo4j-username>:<neo4j-password>@<neo4j-server>:7687`
+   `neomodel_install_labels core_server.py replica_core --db bolt://<neo4j-username>:<neo4j-password>@<neo4j-server>:7687`
 - Add the elastic-search linking (https://github.com/neo4j-contrib/neo4j-elasticsearch) download the matching (3.1.x) release and unzip it in plugins
 - Add to `neo4j.conf` : 
 ```
 elasticsearch.host_name=http://<elasticsearch-address>:9200
-elasticsearch.index_spec=cho:CHO(author,title,date)
+elasticsearch.index_spec=cho:CHO(author,title,date,attribution)
 ```
 
 ### Elasticsearch Installation
@@ -56,6 +56,6 @@ The import script takes two additional parameters in order to specify which IIIF
 
 ```
 bin/neo4j stop
-bin/neo4j-admin dump --to=/mnt/cluster-nas/benoit/neo4j_backups/2017_07_19.dump
+bin/neo4j-admin dump --to=/mnt/cluster-nas/benoit/neo4j_backups/2017_12_08.dump
 bin/neo4j start
 ```

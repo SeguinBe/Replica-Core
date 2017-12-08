@@ -4,17 +4,44 @@ from neomodel import StringProperty, DateTimeProperty, ArrayProperty, UniqueIdPr
     RelationshipFrom, RelationshipTo, Relationship, JSONProperty, IntegerProperty
 from flask_restplus import fields, Model
 from datetime import datetime, timedelta
+from collections import defaultdict
+
+
+class _SerializationLevel:
+    def __init__(self, level, suffix):
+        self.suffix = suffix
+        self.level = level
+
+    def __le__(self, other):
+        return self.level <= other.level
+
+    def __ge__(self, other):
+        return self.level >= other.level
+
+    def get_suffix(self):
+        return self.suffix
+
+    def __repr__(self):
+        return 'SerializationLevel.{},{}'.format(self.level, self.suffix)
+
+
+class SerializationLevel:
+    BASE = _SerializationLevel(0, '_base')
+    NORMAL = _SerializationLevel(1, '')
+    EXTENDED = _SerializationLevel(2, '_ext')
+    DEFAULT = NORMAL
 
 
 class BaseElement:
     __non_extended_relationships__ = []
     __do_not_marshall_properties__ = []
     __do_not_marshall_relationships__ = []
+    __relationship_serialization__ = dict()
     added = DateTimeProperty(default_now=True, help_text="Time at which this element was added in the database")
     uid = UniqueIdProperty(help_text='Internal Unique Identifier')
 
     @classmethod
-    def _get_schema(cls, api, extended=False):
+    def _get_schema(cls, api, level=SerializationLevel.DEFAULT):
         result = dict()
         conversion_dict = {
             StringProperty: fields.String,
@@ -33,43 +60,48 @@ class BaseElement:
                 else:
                     result[property_name] = d(description=property.help_text,
                                               required=property.required or (property.default is not None))
-        for relationship_name, relationship in cls.__all_relationships__:
-            if relationship_name in cls.__do_not_marshall_relationships__:
-                continue
-            if extended or relationship_name in cls.__non_extended_relationships__:
-                cardinality = relationship.manager  # type: neomodel.RelationshipManager
-                m = api.models[cls.get_model_name(relationship._raw_class)]
-                if cardinality == neomodel.One:
-                    result[relationship_name] = fields.Nested(m, required=True)
-                elif cardinality == neomodel.ZeroOrOne:
-                    result[relationship_name] = fields.Nested(m)
-                else:
-                    result[relationship_name] = fields.List(fields.Nested(m),
-                                                            required=True)
+        if level >= SerializationLevel.NORMAL:
+            for relationship_name, relationship in cls.__all_relationships__:
+                if relationship_name in cls.__do_not_marshall_relationships__:
+                    continue
+                if (level >= SerializationLevel.EXTENDED) or relationship_name in cls.__non_extended_relationships__:
+                    cardinality = relationship.manager  # type: neomodel.RelationshipManager
+                    m = api.models[cls.get_model_name(relationship._raw_class,
+                                                      cls.__relationship_serialization__.get(relationship_name,
+                                                                                             SerializationLevel.NORMAL))]
+                    if cardinality == neomodel.One:
+                        result[relationship_name] = fields.Nested(m, required=True)
+                    elif cardinality == neomodel.ZeroOrOne:
+                        result[relationship_name] = fields.Nested(m)
+                    else:
+                        result[relationship_name] = fields.List(fields.Nested(m),
+                                                                required=True)
         return result
 
     @classmethod
-    def add_schema(cls, api, extended=False):
-        class_name = cls.get_model_name(str(cls.__name__)) + ('_ext' if extended else '')
-        api.models[class_name] = Model(class_name, cls._get_schema(api, extended))
+    def add_schema(cls, api, level=SerializationLevel.DEFAULT):
+        class_name = cls.get_model_name(str(cls.__name__), level)
+        api.models[class_name] = Model(class_name, cls._get_schema(api, level))
 
     @staticmethod
-    def get_model_name(raw_name):
-        return raw_name.split('.')[-1]
+    def get_model_name(raw_name, level=SerializationLevel.DEFAULT):
+        return raw_name.split('.')[-1] + level.get_suffix()
 
-    def to_dict(self, extended=False):
+    def to_dict(self, level=SerializationLevel.DEFAULT):
         result = {**self.__properties__}  # copy to avoid modifications
-        for relationship_name, relationship in self.__all_relationships__:
-            if relationship_name in self.__do_not_marshall_relationships__:
-                continue
-            if extended or relationship_name in self.__non_extended_relationships__:
-                elements = [n.to_dict() for n in getattr(self, relationship_name).order_by('added').all()]
-                # print(elements)
-                if relationship.manager == neomodel.One or \
-                                relationship.manager == neomodel.ZeroOrOne:
-                    elements = elements[0] if len(elements) > 0 else None
-                if elements is not None:
-                    result[relationship_name] = elements
+        if level >= SerializationLevel.NORMAL:
+            for relationship_name, relationship in self.__all_relationships__:
+                if relationship_name in self.__do_not_marshall_relationships__:
+                    continue
+                if (level >= SerializationLevel.EXTENDED) or relationship_name in self.__non_extended_relationships__:
+                    elements = [n.to_dict(self.__relationship_serialization__.get(relationship_name, SerializationLevel.NORMAL))
+                                for n in getattr(self, relationship_name).order_by('added').all()]
+                    # print(elements)
+                    if relationship.manager == neomodel.One or \
+                                    relationship.manager == neomodel.ZeroOrOne:
+                        elements = elements[0] if len(elements) > 0 else None
+                    if elements is not None:
+                        result[relationship_name] = elements
         return result
 
     @classmethod

@@ -107,8 +107,15 @@ def create_cho(data, overwrite_ok=True):
             return e
     if METADATA_TITLE_FIELD in metadata.keys():
         cho.title = _parse_element(metadata[METADATA_TITLE_FIELD])
+    else:
+        cho.title = None
     if METADATA_AUTHOR_FIELD in metadata.keys():
         cho.author = _parse_element(metadata[METADATA_AUTHOR_FIELD])
+    else:
+        cho.author = None
+    begin_range_date, end_range_date = cho.get_date_range_from_fields(['date', 'daterange', 'timeline', 'timeframe'])
+    cho.date_begin = begin_range_date
+    cho.date_end = end_range_date
     cho.save()
 
     # Gather all the image ressources
