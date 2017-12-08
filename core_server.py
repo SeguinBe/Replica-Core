@@ -484,6 +484,7 @@ class SearchTextResource(Resource):
                          },
                         #{'match': {"attribution": {"query": 'Web Gallery of Art'}}}
                         ],
+                    "must_not": {'match': {"title": {"query": 'detail'}}}
                      #"filter": ,
                      #"must_not": [{'match': {"title": {"query": 'detail'}}},
                                   #{'match': {"attribution": {"query": 'Fondazione Giorgio Cini'}}}
