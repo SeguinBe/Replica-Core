@@ -20,8 +20,9 @@
         <h4>Images</h4>
         <div class='md-padding' layout="row" md-scroll-x layout-wrap>
             <md-card flex="20" ng-repeat="item in groupData.images">
-                <div class="img-container square"><img ng-src="{{ getImageThumbnail2(item) }}"
-                                                       ng-click="showImageDialog($event,item.uid)"></div>
+                <div >
+                    <img ng-src="{{ getImageThumbnail2(item) }}" ng-click="showImageDialog($event,item.uid)">
+                </div>
                 <md-card-content>
                     <h3>{{ item.cho.author }}</h3>
                     <p>{{ item.cho.title }}</p>

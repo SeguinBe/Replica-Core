@@ -47,16 +47,21 @@ tsne-view line {
 }
 
 .img-container {
-    /*width: 100%;
-    padding-bottom: 100%;
-    position: relative;*/
+    width: 100%;
 }
 
+/*.img-container:after {
+  content: "";
+  display: block;
+  padding-bottom: 100%;
+}*/
+
 .img-container img {
+    object-fit: contain;
     /*max-height: 100%;*/
-    max-width: 100%;
+    /*max-width: 100%;
     /*width: auto;*/
-    height: auto;
+    /*height: auto;*/
     /*position: absolute;
     top: 0;
     bottom: 0;
@@ -84,5 +89,10 @@ tsne-view line {
 
 .square {
     width: 100%;
-    padding-bottom: 100%;
+}
+
+.square:after {
+  content: "";
+  display: block;
+  padding-bottom: 100%;
 }
