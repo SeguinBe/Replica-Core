@@ -25,7 +25,7 @@ The image similarity system is a separate server.
 - Add to `neo4j.conf` : 
 ```
 elasticsearch.host_name=http://<elasticsearch-address>:9200
-elasticsearch.index_spec=cho:CHO(author,title,date,attribution)
+elasticsearch.index_spec=cho:CHO(author,title,date_begin,date_end,attribution)
 ```
 
 ### Elasticsearch Installation

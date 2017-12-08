@@ -4,8 +4,8 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     $scope.links = [];
     $scope.showSideQuery = true;
     $scope.searchQuery = '';
-    $scope.minDate = 1000;
-    $scope.maxDate = 1950;
+    $scope.minDate = null;
+    $scope.maxDate = null;
     $scope.showResultsAsEmbedding = false;
     $scope.findAllTermsInText = true;
     $scope.nbResults = 250;

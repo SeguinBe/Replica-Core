@@ -458,8 +458,8 @@ class SearchTextResource(Resource):
     parser.add_argument('query', type=str, required=True)
     parser.add_argument('nb_results', type=int, default=40)
     parser.add_argument('all_terms', type=int, default=1)
-    parser.add_argument('min_date', type=int, default=0)
-    parser.add_argument('max_date', type=int, default=2000)
+    parser.add_argument('min_date', type=int)
+    parser.add_argument('max_date', type=int)
 
     @api.marshal_with(model_text_search)
     @api.expect(parser)
@@ -467,53 +467,36 @@ class SearchTextResource(Resource):
         args = self.parser.parse_args()
         q = args['query']
         nb_results = args['nb_results']
+        min_date = args['min_date']  # type: Optional[int]
+        max_date = args['max_date']  # type: Optional[int]
         if True:
+            base_query = {
+                "bool": {
+                     "must": [
+                         {
+                             "match": {
+                                "_all": {
+                                    "query": q,
+                                    "operator": "and" if args["all_terms"] == 1 else "or",
+                                    # "fuzziness": "AUTO",
+                                },
+                             },
+                         },
+                        #{'match': {"attribution": {"query": 'Web Gallery of Art'}}}
+                        ],
+                     #"filter": ,
+                     #"must_not": [{'match': {"title": {"query": 'detail'}}},
+                                  #{'match': {"attribution": {"query": 'Fondazione Giorgio Cini'}}}
+                     #             ]
+                 }
+            }
+            if min_date is not None:
+                base_query['bool']['must'].append({"range": {"date_begin": {"lte": max_date}}})
+            if max_date is not None:
+                base_query['bool']['must'].append({"range": {"date_end": {"gte": min_date}}})
             elastic_search_query = {
-                "query": {
-                      # "multi_match": {
-                      #     "query": q,
-                      #     #"type": "most_fields",
-                      #     "fuzziness": "AUTO",  # 1
-                      #     "fields": [
-                      #         "author",
-                      #         "title"
-                      #     ],
-                      #     "operator":   "and"
-                      # }
-
-                      # "match": {
-                      #     "_all": {
-                      #         "query": q,
-                      #         "operator": "and" if args["all_terms"] == 1 else "or",
-                      #         # "fuzziness": "AUTO",
-                      #     }
-                      # }
-                     "bool": {
-                         "must": [
-                             {"match": {
-                              "_all": {
-                                  "query": q,
-                                  "operator": "and" if args["all_terms"] == 1 else "or",
-                                  # "fuzziness": "AUTO",
-                              }
-                             }},
-                             #{"range": {
-                             #   "date": {
-                             #       "gte": args['min_date'],
-                             #       "lte": args['max_date']
-                             #   }
-                             #}
-                            #},
-                            #{'match': {"attribution": {"query": 'Web Gallery of Art'}}}
-                            ],
-                         #"filter": ,
-                         "must_not": [{'match': {"title": {"query": 'detail'}}},
-                                      #{'match': {"attribution": {"query": 'Fondazione Giorgio Cini'}}}
-                                      ]
-
-                     }
-                  },
-                  "size": nb_results
+                "query": base_query,
+                "size": nb_results
             }
             es_results = requests.get('{}/_search'.format(app.config['ELASTICSEARCH_URL']),
                                       json=elastic_search_query)

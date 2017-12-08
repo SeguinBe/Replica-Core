@@ -68,10 +68,12 @@ class IIIFMetadata:
                     b = int(s1)
                 if s2.isdigit():
                     e = int(s2)
-                # Cases of 1722-24
+                # Cases of 1722-24 or 1722-3
                 if e is not None and b is not None:
+                    if e < 10:
+                        e += (b // 10)*10
                     if e < 100:
-                        e += b % 100
+                        e += (b // 100)*100
                     assert b < e, (f, b, e)
                 return b, e
             # c. 1565
