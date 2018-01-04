@@ -14,10 +14,11 @@ class VisualLink(StructuredNode, BaseElement):
     class Type:
         PROPOSAL = 'PROPOSAL'
         DUPLICATE = 'DUPLICATE'
+        NONDUPLICATE = 'NON-DUPLICATE'
         POSITIVE = 'POSITIVE'
         NEGATIVE = 'NEGATIVE'
         UNDEFINED = 'UNDEFINED'
-        VALID_TYPES = [DUPLICATE, POSITIVE, NEGATIVE, UNDEFINED]
+        VALID_TYPES = [DUPLICATE, NONDUPLICATE, POSITIVE, NEGATIVE, UNDEFINED]
         ALL_TYPES = VALID_TYPES + [PROPOSAL]
 
     # User that proposed or created the link
@@ -32,17 +33,6 @@ class VisualLink(StructuredNode, BaseElement):
     strength = IntegerProperty()
 
     images = RelationshipTo('.iiif.Image', 'LINKS')
-
-    @classmethod
-    def get_from_images(cls, img1_uid: str, img2_uid: str, user=None) -> Union[None, 'VisualLink']:
-        results, _ = db.cypher_query('''MATCH (i2:Image)<-[:LINKS]-(l:'''+str(cls.__name__)+''')-[:LINKS]->(i1:Image)
-                                        WHERE i1.uid={img1} and i2.uid={img2}
-                                        RETURN l''',
-                                     dict(img1=img1_uid, img2=img2_uid))
-        if len(results) > 0:
-            return cls.inflate(results[0][0])
-        else:
-            return None
 
     def annotate(self, user: 'User', link_type: 'Type'):
         if link_type not in VisualLink.Type.VALID_TYPES:
@@ -64,6 +54,30 @@ class VisualLink(StructuredNode, BaseElement):
                 self.type = VisualLink.Type.PROPOSAL
                 self.save()
                 self.annotator.disconnect(old_annotator)
+
+    def plot(self):
+        from IPython.core.display import display, HTML
+        html_code = """
+        <span>Type : {} <br>
+        Creator : {} <br>
+        Annotator : {}</span>
+        <div style="float:left;">
+        <img style="display:inline-block;" src="{}/full/300,/0/default.jpg",width=300/>
+        <img style="display:inline-block;" src="{}/full/300,/0/default.jpg",width=300/>
+        </div>
+        """.format(self.type, self.creator.get().username, self.annotator.get_or_none(), *(img.iiif_url for img in self.images))
+        display(HTML(html_code))
+
+    @classmethod
+    def get_from_images(cls, img1_uid: str, img2_uid: str, user=None) -> Union[None, 'VisualLink']:
+        results, _ = db.cypher_query('''MATCH (i2:Image)<-[:LINKS]-(l:'''+str(cls.__name__)+''')-[:LINKS]->(i1:Image)
+                                        WHERE i1.uid={img1} and i2.uid={img2}
+                                        RETURN l''',
+                                     dict(img1=img1_uid, img2=img2_uid))
+        if len(results) > 0:
+            return cls.inflate(results[0][0])
+        else:
+            return None
 
     @classmethod
     def create_proposal(cls, img1: Image, img2: Image, user: 'User', exist_ok=True):

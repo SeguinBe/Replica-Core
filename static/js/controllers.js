@@ -174,12 +174,15 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
             multiple: true
         });
 
-        function DialogController($scope, $mdDialog, locals, rootScope) {
+        function DialogController($scope, $mdDialog, $sce, locals, rootScope) {
             $scope.getImage = function (e) {
                 if (e != undefined)
                     return e.iiif_url + "/full/!1000,1000/0/default.jpg";
                 else
                     return "";
+            };
+            $scope.renderHtml = function (htmlCode) {
+                return $sce.trustAsHtml(htmlCode);
             };
             $scope.locals = locals;
             $scope.element = null;
@@ -308,7 +311,7 @@ replicaModule.controller('proposalsListController', function ($scope, $http, $md
             '</md-dialog>',
             locals: { rootScope: $scope },
             controller: function ($mdDialog, $scope, rootScope) {
-                $scope.POSSIBLE_TYPES = ['DUPLICATE', 'POSITIVE', 'NEGATIVE'];
+                $scope.POSSIBLE_TYPES = ['DUPLICATE', 'NON-DUPLICATE', 'POSITIVE', 'NEGATIVE'];
                 $scope.link = {
                     img1: rootScope.proposalsList[i].images[0],
                     img2: rootScope.proposalsList[i].images[1]

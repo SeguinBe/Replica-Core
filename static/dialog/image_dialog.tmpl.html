@@ -48,7 +48,7 @@
                             <md-list>
                                 <md-list-item ng-repeat="m in element.cho.raw_metadata">
                                     <p> {{ m.label }} </p>
-                                    <div class="text-right">{{ m.value }}</div>
+                                    <div class="text-right"><div ng-bind-html="renderHtml(m.value)"></div></div>
                                 </md-list-item>
                             </md-list>
                         </md-card>
