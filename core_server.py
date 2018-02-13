@@ -452,6 +452,62 @@ class LinkResource(Resource):
 #        return {'links': [l.to_dict(extended=True) for l in model.VisualLink.nodes.all()]}
 
 
+def elastic_search_ids(query, all_terms=False, min_date=None, max_date=None, nb_results=200):
+    base_query = {
+        "bool": {
+             "must": [
+                 {
+                     "match": {
+                        "_all": {
+                            "query": query,
+                            "operator": "and" if all_terms else "or",
+                            "fuzziness": "AUTO",
+                        },
+                     },
+                 },
+                #{'match': {"attribution": {"query": 'Web Gallery of Art'}}}
+                ],
+            "must_not": {'match': {"title": {"query": 'detail'}}}
+             #"filter": ,
+             #"must_not": [{'match': {"title": {"query": 'detail'}}},
+                          #{'match': {"attribution": {"query": 'Fondazione Giorgio Cini'}}}
+             #             ]
+         }
+    }
+    if min_date is not None:
+        base_query['bool']['must'].append({"range": {"date_begin": {"lte": max_date}}})
+    if max_date is not None:
+        base_query['bool']['must'].append({"range": {"date_end": {"gte": min_date}}})
+    elastic_search_query = {
+        "stored_fields": [],  # Do not return the fields, _id is enough
+        "query": base_query,
+        "size": nb_results
+    }
+    # If all of them needs to be returned, use scrolling
+    if nb_results > 10000:
+        elastic_search_query['size'] = 10000  # Pages of 10000 elements
+        es_results = requests.get('{}/_search?scroll=1m'.format(app.config['ELASTICSEARCH_URL']),
+                                  json=elastic_search_query)
+        all_ids = []
+        # Take pages until done
+        while True:
+            json_result = es_results.json()
+            new_ids = [int(s['_id']) for s in json_result['hits']['hits']]
+            if len(new_ids) == 0:
+                return all_ids
+            all_ids.extend(new_ids)
+            if len(all_ids) > nb_results:
+                return all_ids[:nb_results]
+            es_results = requests.get('{}/_search/scroll'.format(app.config['ELASTICSEARCH_URL']),
+                                      json={'scroll': '1m', 'scroll_id': json_result['_scroll_id']})
+    else:
+        es_results = requests.get('{}/_search'.format(app.config['ELASTICSEARCH_URL']),
+                                  json=elastic_search_query)
+        if es_results.status_code != 200:
+            raise BadRequest('ElasticSearch query failed')
+        return [int(r['_id']) for r in es_results.json()['hits']['hits']]
+
+
 @api.route('/api/search/text')
 class SearchTextResource(Resource):
     parser = api.parser()
@@ -470,41 +526,7 @@ class SearchTextResource(Resource):
         min_date = args['min_date']  # type: Optional[int]
         max_date = args['max_date']  # type: Optional[int]
         if True:
-            base_query = {
-                "bool": {
-                     "must": [
-                         {
-                             "match": {
-                                "_all": {
-                                    "query": q,
-                                    "operator": "and" if args["all_terms"] == 1 else "or",
-                                    # "fuzziness": "AUTO",
-                                },
-                             },
-                         },
-                        #{'match': {"attribution": {"query": 'Web Gallery of Art'}}}
-                        ],
-                    "must_not": {'match': {"title": {"query": 'detail'}}}
-                     #"filter": ,
-                     #"must_not": [{'match': {"title": {"query": 'detail'}}},
-                                  #{'match': {"attribution": {"query": 'Fondazione Giorgio Cini'}}}
-                     #             ]
-                 }
-            }
-            if min_date is not None:
-                base_query['bool']['must'].append({"range": {"date_begin": {"lte": max_date}}})
-            if max_date is not None:
-                base_query['bool']['must'].append({"range": {"date_end": {"gte": min_date}}})
-            elastic_search_query = {
-                "query": base_query,
-                "size": nb_results
-            }
-            es_results = requests.get('{}/_search'.format(app.config['ELASTICSEARCH_URL']),
-                                      json=elastic_search_query)
-            if es_results.status_code != 200:
-                raise BadRequest('ElasticSearch query failed')
-            ids = [int(r['_id']) for r in es_results.json()['hits']['hits']]
-            # results = [model.CHO.get_by_id(_id) for _id in ids]
+            ids = elastic_search_ids(q, args['all_terms'], min_date, max_date, nb_results)
             results = model.CHO.get_by_ids(ids)
         else:
             results = model.CHO.search(q, nb_results)
@@ -518,11 +540,23 @@ class SearchImageResource(Resource):
     parser.add_argument('negative_image_uids', type=list, default=[], location='json')
     parser.add_argument('nb_results', type=int, default=100)
     parser.add_argument('index', type=str, location='json')
+    parser.add_argument('metadata', type=dict)
 
-    @api.marshal_with(model_image_search)
+    @api.marshal_with(model_image_search_region)
     @api.expect(parser)
     def post(self):
         args = self.parser.parse_args()
+        if args.get('metadata'):
+            metadata = args['metadata']
+            ids = elastic_search_ids(metadata.get('query', ''),
+                                     metadata.get('all_terms', True),
+                                     metadata.get('min_date'),
+                                     metadata.get('max_date'),
+                                     50000)
+            filtered_uids = model.CHO.get_image_uids_from_ids(ids)
+            del args['metadata']
+            args['filtered_uids'] = filtered_uids
+        args['rerank'] = True
         try:
             r = requests.post(app.config['REPLICA_SEARCH_URL'] + '/api/search', json=args)
         except Exception as e:
@@ -531,7 +565,10 @@ class SearchImageResource(Resource):
             raise BadRequest('Bad answer from the search server : {}'.format(r.json().get('message')))
         result_output = []
         for result in r.json()['results']:
-            result_output.append(model.CHO.get_from_image_uid(result['uid']).to_dict())
+            r = model.CHO.get_from_image_uid(result['uid']).to_dict()
+            if 'box' in result.keys():
+                r['images'][0]['box'] = result['box']
+            result_output.append(r)
         return {'results': result_output}
 
 
@@ -566,11 +603,22 @@ class SearchImageResource(Resource):
     parser.add_argument('box_w', type=float, default=1.0, location='json')
     parser.add_argument('nb_results', type=int, default=100)
     parser.add_argument('index', type=str, location='json')
+    parser.add_argument('metadata', type=dict)
 
     @api.marshal_with(model_image_search_region)
     @api.expect(parser)
     def post(self):
         args = self.parser.parse_args()
+        if args.get('metadata'):
+            metadata = args['metadata']
+            ids = elastic_search_ids(metadata.get('query', ''),
+                                     metadata.get('all_terms', True),
+                                     metadata.get('min_date'),
+                                     metadata.get('max_date'),
+                                     50000)
+            filtered_uids = model.CHO.get_image_uids_from_ids(ids)
+            del args['metadata']
+            args['filtered_uids'] = filtered_uids
         try:
             r = requests.post(app.config['REPLICA_SEARCH_URL'] + '/api/search_region', json=args)
         except Exception as e:

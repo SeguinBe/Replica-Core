@@ -14,6 +14,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     $scope.experiment_type = '';
     $scope.experiment_id = 0;
     $scope.limitFilteredResults = null;
+    $scope.filterImageSearchMetadata = false;
     var resultsDisplayedInitial = 16;
     console.log($stateParams);
     if ($stateParams.q != null || $stateParams.n != null || $stateParams.image_url != null) {
@@ -69,14 +70,19 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
 
     $scope.$watch('results', updateLinks);
     $scope.$watch('results', updateFilteredResults);
-    $scope.searchText = function () {
-        var request = {
+
+    function makeMetadataRequest() {
+        return {
             query: $scope.searchQuery,
             nb_results: $scope.nbResults,
             all_terms: $scope.findAllTermsInText ? 1 : 0,
             min_date: $scope.minDate,
             max_date: $scope.maxDate
         };
+    }
+
+    $scope.searchText = function () {
+        var request = makeMetadataRequest();
         $http.get('api/search/text',
             {params: request}).then(
             function (response) {
@@ -106,6 +112,9 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
             nb_results: $scope.nbResults,
             index: $scope.indexKey
         };
+        if ($scope.filterImageSearchMetadata) {
+            request.metadata = makeMetadataRequest();
+        }
         $http.post("/api/image/search", request).then(
             function (response) {
                 $scope.results = response.data.results;
@@ -133,7 +142,10 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
             "reranking_results": 4000,
             "index": $scope.indexKey
         };
-        $http.post("/api/image/search_region", request).then(
+        if ($scope.filterImageSearchMetadata) {
+            request.metadata = makeMetadataRequest();
+        }
+        $http.post("/api/image/search_region", request, {timeout: 20000}).then(
             function (response) {
                 $scope.results = response.data.results;
                 $scope.resultsDisplayed = resultsDisplayedInitial;

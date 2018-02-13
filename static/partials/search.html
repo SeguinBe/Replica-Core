@@ -30,7 +30,9 @@
                     </md-tab>
                     <md-tab label="Image">
                         <div layout="row" layout-align="space-around center">
-
+                            <md-switch flex="60" ng-model="$parent.$parent.filterImageSearchMetadata" aria-label="Filter the results with the metadata query">
+                                Filter with metadata
+                            </md-switch>
                             <div>
                                 <md-progress-circular md-mode="indeterminate"
                                                       ng-if="is_searching"></md-progress-circular>

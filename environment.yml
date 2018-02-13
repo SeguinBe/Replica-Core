@@ -33,3 +33,4 @@ dependencies:
   - python-dateutil==2.6.1
   - pytz==2017.3
   - six==1.11.0
+  - elasticsearch5==5.5.2

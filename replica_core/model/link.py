@@ -1,13 +1,26 @@
 import neomodel
 from neomodel import StructuredNode, StructuredRel, db
 from neomodel import StringProperty, DateTimeProperty, ArrayProperty, UniqueIdProperty, EmailProperty, \
-    RelationshipFrom, RelationshipTo, Relationship, JSONProperty, IntegerProperty
+    RelationshipFrom, RelationshipTo, Relationship, JSONProperty, IntegerProperty, FloatProperty
 from typing import List, Union, Tuple, Optional
 import pytz
 from datetime import datetime, timedelta
 from .base import BaseElement
 from .iiif import CHO, Collection, Image
 from .user import User, Group, GroupContains
+
+
+class LinkImageRel(StructuredRel):
+    box_x = FloatProperty()
+    box_y = FloatProperty()
+    box_h = FloatProperty()
+    box_w = FloatProperty()
+
+    def set_dict(self, **kwargs):
+        self.box_x = kwargs['box_x']
+        self.box_y = kwargs['box_y']
+        self.box_h = kwargs['box_h']
+        self.box_w = kwargs['box_w']
 
 
 class VisualLink(StructuredNode, BaseElement):
@@ -32,7 +45,7 @@ class VisualLink(StructuredNode, BaseElement):
     # Integer value for relative strength encoding
     strength = IntegerProperty()
 
-    images = RelationshipTo('.iiif.Image', 'LINKS')
+    images = RelationshipTo('.iiif.Image', 'LINKS', model=LinkImageRel)
 
     def annotate(self, user: 'User', link_type: 'Type'):
         if link_type not in VisualLink.Type.VALID_TYPES:
@@ -58,14 +71,17 @@ class VisualLink(StructuredNode, BaseElement):
     def plot(self):
         from IPython.core.display import display, HTML
         html_code = """
-        <span>Type : {} <br>
+        <span>
+        UID : {} <br>
+        Type : {} <br>
         Creator : {} <br>
-        Annotator : {}</span>
+        Annotator : {}
+        </span>
         <div style="float:left;">
         <img style="display:inline-block;" src="{}/full/300,/0/default.jpg",width=300/>
         <img style="display:inline-block;" src="{}/full/300,/0/default.jpg",width=300/>
         </div>
-        """.format(self.type, self.creator.get().username, self.annotator.get_or_none(), *(img.iiif_url for img in self.images))
+        """.format(self.uid, self.type, self.creator.get().username, self.annotator.get_or_none(), *(img.iiif_url for img in self.images))
         display(HTML(html_code))
 
     @classmethod

@@ -187,6 +187,14 @@ class CHO(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
         return CHO.inflate(results[0][0])
 
     @classmethod
+    def get_image_uids_from_ids(cls, ids: List[int]) -> List['str']:
+        results, _ = db.cypher_query(
+            "match (n1:CHO)-[IS_SHOWN_BY]-(n2:Image) where id(n1) IN {ids} return n1.uid, n2.uid",
+            params={'ids': ids}
+        )
+        return [n[1] for n in results]
+
+    @classmethod
     def _get_schema(cls, api, level=SerializationLevel.DEFAULT):
         schema = super()._get_schema(api, level)
         #schema['images'] = fields.List(fields.Nested(api.models[str(Image.__name__)]),

@@ -119,6 +119,13 @@ class BaseElement:
         return [key_order[_id] for _id in _ids]
 
     @classmethod
+    def get_uids_by_ids(cls, _ids):
+        query = "MATCH (a) WHERE id(a) IN {ids} RETURN id(a), a.uid"
+        results, meta = db.cypher_query(query, {'ids': _ids})
+        unordered_results = {r[0]: r[1] for r in results}
+        return [unordered_results[_id] for _id in _ids]
+
+    @classmethod
     def get_elements_created_since(cls, time=datetime.today() - timedelta(1)):
         # return cls.nodes.filter(added__gt=time.timestamp())
         query = "MATCH (a) WHERE a.added>{timestamp} RETURN a ORDER BY a.added DESC"
