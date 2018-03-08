@@ -50,7 +50,7 @@
                             </div>
                         </div>
                     </md-tab>
-                    <md-tab ng-if="isAuthenticated()" label="Detail">
+                    <md-tab label="Detail">
                         <div layout="row" layout-align="space-around center">
 
                             <div flex="60">
@@ -74,7 +74,7 @@
                                      ng-click="showCropperDialog($event,current_selection[0])">
                                      -->
                                 <md-switch ng-model="$parent.$parent.filterImageSearchMetadata" aria-label="Filter the results with the metadata query">
-                                Filter with metadata
+                                    Filter with metadata
                                 </md-switch>
                             </div>
                             <div flex="20">
