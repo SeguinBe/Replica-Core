@@ -79,7 +79,7 @@ angular.module('replicaModule')
         };
         $scope.refreshData();
     })
-    .directive('imagesGraph', function ($http) {
+    .directive('imagesGraph', function ($http, $window) {
         function link(scope, el_base) {
 
             function getImageThumbnail(e) {
@@ -88,7 +88,7 @@ angular.module('replicaModule')
 
             var el = el_base[0];
             var width = 800,
-                height = 800;
+                height = $window.innerHeight;
 
             var base_image_size = 40;
             var image_size = base_image_size;

@@ -66,11 +66,15 @@ model_groups = api.model('Groups',
 model_links = api.model('Links',
                         {'links': fields.List(fields.Nested(api.models['VisualLink_ext']), required=True)})
 model_text_search = api.model('TextSearch',
-                              {'query': fields.String, 'results': fields.List(fields.Nested(api.models['CHO']))})
+                              {'query': fields.String,
+                               'results': fields.List(fields.Nested(api.models['CHO'])),
+                               'total': fields.Integer})
 model_image_search = api.model('ImageSearch',
-                               {'results': fields.List(fields.Nested(api.models['CHO']))})
+                               {'results': fields.List(fields.Nested(api.models['CHO'])),
+                                'total': fields.Integer})
 model_image_search_region = api.model('ImageSearchRegion',
-                                      {'results': fields.List(fields.Nested(model_cho_box))})
+                                      {'results': fields.List(fields.Nested(model_cho_box)),
+                                       'total': fields.Integer})
 model_simple_uid = api.model('SimpleUid',
                                       {'uid': fields.String(required=True, description='Unique Identifier')})
 
@@ -492,12 +496,13 @@ def elastic_search_ids(query, all_terms=False, min_date=None, max_date=None, nb_
         # Take pages until done
         while True:
             json_result = es_results.json()
+            total_results = json_result['hits']['total']
             new_ids = [int(s['_id']) for s in json_result['hits']['hits']]
             if len(new_ids) == 0:
-                return all_ids
+                return all_ids, total_results
             all_ids.extend(new_ids)
             if len(all_ids) > nb_results:
-                return all_ids[:nb_results]
+                return all_ids[:nb_results], total_results
             es_results = requests.get('{}/_search/scroll'.format(app.config['ELASTICSEARCH_URL']),
                                       json={'scroll': '1m', 'scroll_id': json_result['_scroll_id']})
     else:
@@ -505,7 +510,9 @@ def elastic_search_ids(query, all_terms=False, min_date=None, max_date=None, nb_
                                   json=elastic_search_query)
         if es_results.status_code != 200:
             raise BadRequest('ElasticSearch query failed')
-        return [int(r['_id']) for r in es_results.json()['hits']['hits']]
+        search_data = es_results.json()
+        total_results = search_data['hits']['total']
+        return [int(r['_id']) for r in search_data['hits']['hits']], total_results
 
 
 @api.route('/api/search/text')
@@ -526,11 +533,11 @@ class SearchTextResource(Resource):
         min_date = args['min_date']  # type: Optional[int]
         max_date = args['max_date']  # type: Optional[int]
         if True:
-            ids = elastic_search_ids(q, args['all_terms'], min_date, max_date, nb_results)
+            ids, total_results = elastic_search_ids(q, args['all_terms'], min_date, max_date, nb_results)
             results = model.CHO.get_by_ids(ids)
         else:
             results = model.CHO.search(q, nb_results)
-        return {'query': q, 'results': [r.to_dict() for r in results]}
+        return {'query': q, 'results': [r.to_dict() for r in results], 'total': total_results}
 
 
 @api.route('/api/image/search')
@@ -541,6 +548,7 @@ class SearchImageResource(Resource):
     parser.add_argument('nb_results', type=int, default=100)
     parser.add_argument('index', type=str, location='json')
     parser.add_argument('metadata', type=dict)
+    parser.add_argument('rerank', type=bool, default=False, location='json')
 
     @api.marshal_with(model_image_search_region)
     @api.expect(parser)
@@ -548,7 +556,7 @@ class SearchImageResource(Resource):
         args = self.parser.parse_args()
         if args.get('metadata'):
             metadata = args['metadata']
-            ids = elastic_search_ids(metadata.get('query', ''),
+            ids, _ = elastic_search_ids(metadata.get('query', ''),
                                      metadata.get('all_terms', True),
                                      metadata.get('min_date'),
                                      metadata.get('max_date'),
@@ -556,7 +564,6 @@ class SearchImageResource(Resource):
             filtered_uids = model.CHO.get_image_uids_from_ids(ids)
             del args['metadata']
             args['filtered_uids'] = filtered_uids
-        args['rerank'] = True
         try:
             r = requests.post(app.config['REPLICA_SEARCH_URL'] + '/api/search', json=args)
         except Exception as e:
@@ -564,12 +571,13 @@ class SearchImageResource(Resource):
         if r.status_code != 200:
             raise BadRequest('Bad answer from the search server : {}'.format(r.json().get('message')))
         result_output = []
-        for result in r.json()['results']:
+        request_output = r.json()
+        for result in request_output['results']:
             r = model.CHO.get_from_image_uid(result['uid']).to_dict()
             if 'box' in result.keys():
                 r['images'][0]['box'] = result['box']
             result_output.append(r)
-        return {'results': result_output}
+        return {'results': result_output, 'total': request_output['total']}
 
 
 @api.route('/api/image/distance_matrix')
@@ -611,7 +619,7 @@ class SearchImageResource(Resource):
         args = self.parser.parse_args()
         if args.get('metadata'):
             metadata = args['metadata']
-            ids = elastic_search_ids(metadata.get('query', ''),
+            ids, _ = elastic_search_ids(metadata.get('query', ''),
                                      metadata.get('all_terms', True),
                                      metadata.get('min_date'),
                                      metadata.get('max_date'),
@@ -626,11 +634,12 @@ class SearchImageResource(Resource):
         if r.status_code != 200:
             raise BadRequest('Bad answer from the search server : {}'.format(r.json().get('message')))
         result_output = []
-        for result in r.json()['results']:
+        request_output = r.json()
+        for result in request_output['results']:
             r = model.CHO.get_from_image_uid(result['uid']).to_dict()
             r['images'][0]['box'] = result['box']
             result_output.append(r)
-        return {'results': result_output}
+        return {'results': result_output, 'total': request_output['total']}
 
 
 @api.route('/api/auth')

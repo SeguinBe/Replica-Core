@@ -3,7 +3,7 @@
  */
 
 angular.module('replicaModule')
-    .directive('tsneView', function ($rootScope, $http) {
+    .directive('tsneView', function ($rootScope, $http, $window) {
         function link(scope, el_base) {
 
             function getImageThumbnail(e) {
@@ -12,7 +12,7 @@ angular.module('replicaModule')
 
             var el = el_base[0];
             var width = 800,
-                height = 800;
+                height = $window.innerHeight;
 
             var nodes_data = null;
 

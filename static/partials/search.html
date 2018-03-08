@@ -1,7 +1,7 @@
 <div layout="row" layout-offset="5">
     <div flex="0"></div>
     <div flex>
-        <div layout="row" style="height: 280px" layout-align="space-between" ng-if="experiment_type!='annotation'">
+        <div layout="row" style="height: 300px" layout-align="space-between" ng-if="experiment_type!='annotation'">
             <md-card flex="30" layout-gt-sm="column" ng-if="!experiment_mode">
                 <md-tabs md-autoselect md-border-bottom md-dynamic-height>
                     <md-tab label="Text">
@@ -30,9 +30,15 @@
                     </md-tab>
                     <md-tab label="Image">
                         <div layout="row" layout-align="space-around center">
-                            <md-switch flex="60" ng-model="$parent.$parent.filterImageSearchMetadata" aria-label="Filter the results with the metadata query">
-                                Filter with metadata
-                            </md-switch>
+                            <div flex="60">
+                                <md-switch ng-model="$parent.$parent.imageSearchRerank" aria-label="Rerank elements"
+                                           ng-disabled="current_selection.length>1 || negative_selection.length>0">
+                                    Results reranking
+                                </md-switch>
+                                <md-switch ng-model="$parent.$parent.filterImageSearchMetadata" aria-label="Filter the results with the metadata query">
+                                    Filter with metadata
+                                </md-switch>
+                            </div>
                             <div>
                                 <md-progress-circular md-mode="indeterminate"
                                                       ng-if="is_searching"></md-progress-circular>
@@ -54,7 +60,7 @@
                                         mr-drawer="drawer" mr-selector="{enabled: False}"
                                         mr-max-width="100"></div>
                                 </div>-->
-                                <md-button ng-if="current_selection.length>0"
+                                <md-button ng-disabled="current_selection.length==0"
                                            ng-click="showCropperDialog($event,current_selection[0].images[0])">
                                     Select Image Region
                                 </md-button>
@@ -67,6 +73,9 @@
                                      ng-src="{{ getImageThumbnail(current_selection[0]) }}"
                                      ng-click="showCropperDialog($event,current_selection[0])">
                                      -->
+                                <md-switch ng-model="$parent.$parent.filterImageSearchMetadata" aria-label="Filter the results with the metadata query">
+                                Filter with metadata
+                                </md-switch>
                             </div>
                             <div flex="20">
                                 <md-progress-circular md-mode="indeterminate"
@@ -167,11 +176,11 @@
                 <md-list>
                     <md-list-item class="md-2-line secondary-button-padding" ng-repeat="item in current_selection">
                         <img ng-src="{{ getImageThumbnail(item) }}"
-                             ng-click="showImageDialog($event,result.images[0].uid)"
+                             ng-click="showImageDialog($event,item.images[0].uid)"
                              class="md-avatar">
                         <div class="md-list-item-text" layout="column">
-                            <h3>{{ item.author }}</h3>
-                            <p>{{ item.title }}</p>
+                            <h3>{{ item.author | strLimit: 35 }}</h3>
+                            <p>{{ item.title | strLimit: 100 }}</p>
                         </div>
                         <md-button ng-click="removeFromSelection(item, current_selection)"
                                    class="md-icon-button md-primary"
@@ -186,11 +195,11 @@
                 <md-list>
                     <md-list-item class="md-2-line secondary-button-padding" ng-repeat="item in negative_selection">
                         <img ng-src="{{ getImageThumbnail(item) }}"
-                             ng-click="showImageDialog($event,result.images[0].uid)"
+                             ng-click="showImageDialog($event,item.images[0].uid)"
                              class="md-avatar">
                         <div class="md-list-item-text" layout="column">
-                            <h3>{{ item.author }}</h3>
-                            <p>{{ item.title }}</p>
+                            <h3>{{ item.author | strLimit: 35 }}</h3>
+                            <p>{{ item.title | strLimit: 100 }}</p>
                         </div>
                         <md-button ng-click="removeFromSelection(item, negative_selection)"
                                    class="md-icon-button md-primary"
@@ -218,6 +227,7 @@
 
                 </div>
                 <div hl-sticky="">
+                    <span ng-if="results.length>0">Showing {{ results.length }} results out of {{ totalSearched }}</span>
                     <md-tabs md-dynamic-height md-autoselect>
                         <md-tab ng-repeat="item in current_selection" label="#{{$index}}">
                             <div>

@@ -15,6 +15,8 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     $scope.experiment_id = 0;
     $scope.limitFilteredResults = null;
     $scope.filterImageSearchMetadata = false;
+    $scope.imageSearchRerank = true;
+    $scope.totalSearched = 0;
     var resultsDisplayedInitial = 16;
     console.log($stateParams);
     if ($stateParams.q != null || $stateParams.n != null || $stateParams.image_url != null) {
@@ -88,6 +90,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
             function (response) {
                 $scope.results = response.data.results;
                 $scope.resultsDisplayed = resultsDisplayedInitial;
+                $scope.totalSearched = response.data.total;
             }, function (response) {
                 $scope.showErrorToast("Search failed", response);
             }).finally(
@@ -110,7 +113,8 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
             positive_image_uids: positive_image_ids,
             negative_image_uids: negative_image_ids,
             nb_results: $scope.nbResults,
-            index: $scope.indexKey
+            index: $scope.indexKey,
+            rerank: $scope.imageSearchRerank
         };
         if ($scope.filterImageSearchMetadata) {
             request.metadata = makeMetadataRequest();
@@ -119,12 +123,17 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
             function (response) {
                 $scope.results = response.data.results;
                 $scope.resultsDisplayed = resultsDisplayedInitial;
+                $scope.totalSearched = response.data.total;
             }, function (response) {
                 $scope.showErrorToast("Search failed", response);
             }
         ).finally(
             function () {
                 $scope.is_searching = false;
+                for (i = 0; i < $scope.current_selection.length; i++) {
+                    delete $scope.current_selection[i].images[0].box;
+                }
+
                 $analytics.eventTrack('searchImage');
                 logEvent('search_image', request);
             }
@@ -150,6 +159,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
                 $scope.results = response.data.results;
                 $scope.resultsDisplayed = resultsDisplayedInitial;
                 $scope.showResultsAsEmbedding = false;
+                $scope.totalSearched = response.data.total;
             }, function (response) {
                 $scope.showErrorToast("Search failed", response.status);
             }
@@ -374,7 +384,9 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     };
     $scope.addToSelection = function (item, sel) {
         if (!$scope.isInSelection(item, sel)) {
-            sel.push(item);
+            copied_item = angular.copy(item);
+            delete copied_item.images[0].box;
+            sel.push(copied_item);
             logEvent('add_selection');
         }
         updateCookies();
