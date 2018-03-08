@@ -1,5 +1,5 @@
 import neomodel
-from flask import Flask, request, g
+from flask import Flask, request, g, Response, stream_with_context
 from flask_restplus import Api, Resource, fields
 from flask_prometheus import monitor
 from werkzeug.exceptions import BadRequest
@@ -578,6 +578,15 @@ class SearchImageResource(Resource):
                 r['images'][0]['box'] = result['box']
             result_output.append(r)
         return {'results': result_output, 'total': request_output['total']}
+
+
+@api.route('/api/transition_gif/<string:uid1>/<string:uid2>')
+class TransitionGifResource(Resource):
+    def get(self, uid1, uid2):
+        req = requests.get(app.config['REPLICA_SEARCH_URL'] + '/api/transition_gif/{}/{}'.format(uid1, uid2),
+                           stream=True)
+        return Response(stream_with_context(req.iter_content(chunk_size=10000)),
+                        content_type=req.headers['content-type'])
 
 
 @api.route('/api/image/distance_matrix')

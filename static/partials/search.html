@@ -91,9 +91,13 @@
                     <md-tab label="Options">
                         <div layout="column" layout-align="center">
                             <div layout="row">
-                                <md-switch ng-model="$parent.$parent.showSideQuery" aria-label="Show query on the side">
+                                <md-switch flex="50" ng-model="$parent.$parent.showSideQuery" aria-label="Show query on the side">
                                     Show query
                                 </md-switch>
+                                <md-button flex="50" ng-disabled="current_selection.length!=2" target="_blank"
+                                           ng-href="/api/transition_gif/{{current_selection[0].images[0].uid}}/{{current_selection[1].images[0].uid}}">
+                                    Compare 2 Images
+                                </md-button>
                             </div>
                             <div layout="row">
                                 <span>Number of results</span>
