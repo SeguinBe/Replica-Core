@@ -83,6 +83,23 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
         };
     }
 
+    $scope.getRandom = function () {
+        var request = makeMetadataRequest();
+        $http.get('api/element/random',
+            {params: {'nb_elements': $scope.nbResults}}).then(
+            function (response) {
+                $scope.results = response.data;
+                $scope.resultsDisplayed = resultsDisplayedInitial;
+                $scope.totalSearched = response.data.total;
+            }, function (response) {
+                $scope.showErrorToast("Search failed", response);
+            }).finally(
+            function () {
+                $analytics.eventTrack('getRandom');
+                logEvent('get_random', request);
+            }
+        )
+    };
     $scope.searchText = function () {
         var request = makeMetadataRequest();
         $http.get('api/search/text',

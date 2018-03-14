@@ -245,7 +245,7 @@ class LinkResource(Resource):
     def get(self):
         args = self.parser.parse_args()
         chos = model.CHO.get_random(limit=args['nb_elements'])
-        return [cho.to_dict(level=SerializationLevel.EXTENDED) for cho in chos]
+        return [cho.to_dict(level=SerializationLevel.DEFAULT) for cho in chos]
 
 
 @api.route('/api/image/<string:uid>')

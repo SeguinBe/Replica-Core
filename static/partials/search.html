@@ -60,7 +60,7 @@
                                         mr-drawer="drawer" mr-selector="{enabled: False}"
                                         mr-max-width="100"></div>
                                 </div>-->
-                                <md-button ng-disabled="current_selection.length==0"
+                                <md-button class="md-primary" ng-disabled="current_selection.length==0"
                                            ng-click="showCropperDialog($event,current_selection[0].images[0])">
                                     Select Image Region
                                 </md-button>
@@ -94,7 +94,7 @@
                                 <md-switch flex="50" ng-model="$parent.$parent.showSideQuery" aria-label="Show query on the side">
                                     Show query
                                 </md-switch>
-                                <md-button flex="50" ng-disabled="current_selection.length!=2" target="_blank"
+                                <md-button class="md-primary" flex="50" ng-disabled="current_selection.length!=2" target="_blank"
                                            ng-href="/api/transition_gif/{{current_selection[0].images[0].uid}}/{{current_selection[1].images[0].uid}}">
                                     Compare 2 Images
                                 </md-button>
@@ -183,7 +183,7 @@
                              ng-click="showImageDialog($event,item.images[0].uid)"
                              class="md-avatar">
                         <div class="md-list-item-text" layout="column">
-                            <h3>{{ item.author | strLimit: 35 }}</h3>
+                            <h3>{{ item.author | strLimit: 30 }}</h3>
                             <p>{{ item.title | strLimit: 100 }}</p>
                         </div>
                         <md-button ng-click="removeFromSelection(item, current_selection)"
@@ -202,7 +202,7 @@
                              ng-click="showImageDialog($event,item.images[0].uid)"
                              class="md-avatar">
                         <div class="md-list-item-text" layout="column">
-                            <h3>{{ item.author | strLimit: 35 }}</h3>
+                            <h3>{{ item.author | strLimit: 30 }}</h3>
                             <p>{{ item.title | strLimit: 100 }}</p>
                         </div>
                         <md-button ng-click="removeFromSelection(item, negative_selection)"
@@ -231,7 +231,7 @@
 
                 </div>
                 <div hl-sticky="">
-                    <span ng-if="results.length>0">Showing {{ results.length }} results out of {{ totalSearched }}</span>
+                    <span ng-if="results.length>0">Showing {{ results.length }} results <span ng-if="totalSearched"> out of {{ totalSearched }}</span></span>
                     <md-tabs md-dynamic-height md-autoselect>
                         <md-tab ng-repeat="item in current_selection" label="#{{$index}}">
                             <div>
@@ -266,6 +266,9 @@
                 </div>
             </div>
             <div flex>
+                <md-button flex ng-click="getRandom()" ng-if="filteredResults.length==0" class="md-primary">
+                    Don't know where to start? Show me random images
+                </md-button>
                 <div class='results' layout="row" layout-wrap layout-align="space-between"
                      infinite-scroll='showMoreResults()' ng-if="!showResultsAsEmbedding">
                     <!--<md-grid-list md-cols="4"
