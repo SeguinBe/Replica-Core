@@ -11,8 +11,9 @@ angular.module('replicaModule')
             }
 
             var el = el_base[0];
-            var width = 800,
+            var width = $window.innerWidth,
                 height = $window.innerHeight;
+
 
             var nodes_data = null;
 
@@ -53,39 +54,6 @@ angular.module('replicaModule')
                     perplexity: 10,
                     epsilon: 3
                 });
-
-            var simulation = d3.forceSimulation()
-                .force('tsne', function (alpha) {
-                    // every time you call this, solution gets better
-                    model.step();
-
-                    // Y is an array of 2-D points that you can plot
-                    var pos = model.getSolution();
-                    if (pos && nodes_data) {
-
-                        centerx.domain(d3.extent(pos.map(function (d) {
-                            return d[0]
-                        })));
-                        centery.domain(d3.extent(pos.map(function (d) {
-                            return d[1]
-                        })));
-
-                        nodes_data.forEach(function (d, i) {
-                            if (!d.x) {
-                                d.x = 0;
-                            }
-                            if (!d.y) {
-                                d.y = 0;
-                            }
-                            d.x += alpha * (centerx(pos[i][0]) - d.x);
-                            d.y += alpha * (centery(pos[i][1]) - d.y);
-                        });
-                    }
-                    //console.log(model.iter);
-                })
-                .force('collide', d3.forceCollide().radius(function(d) {return image_size/2*1.2;}))
-                .on("tick", ticked);
-
 
             var link = chart.append("g")
                 .attr("class", "links")
@@ -209,6 +177,39 @@ angular.module('replicaModule')
                 );
 
             });
+
+            var simulation = d3.forceSimulation()
+                .force('tsne', function (alpha) {
+                    // every time you call this, solution gets better
+                    model.step();
+
+                    // Y is an array of 2-D points that you can plot
+                    var pos = model.getSolution();
+                    if (pos && nodes_data) {
+
+                        centerx.domain(d3.extent(pos.map(function (d) {
+                            return d[0]
+                        })));
+                        centery.domain(d3.extent(pos.map(function (d) {
+                            return d[1]
+                        })));
+
+                        nodes_data.forEach(function (d, i) {
+                            if (!d.x) {
+                                d.x = 0;
+                            }
+                            if (!d.y) {
+                                d.y = 0;
+                            }
+                            d.x += alpha * (centerx(pos[i][0]) - d.x);
+                            d.y += alpha * (centery(pos[i][1]) - d.y);
+                        });
+                    }
+                    //console.log(model.iter);
+                })
+                .force('collide', d3.forceCollide().radius(function(d) {return image_size/2*1.2;}))
+                .on("tick", ticked);
+
 
             scope.$watch('links', function () {
                 link = link.data(scope.links, function (d) {

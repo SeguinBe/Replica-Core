@@ -1,0 +1,177 @@
+<md-content class="md-padding">
+    <md-card flex="60" flex-offset="20" layout-gt-sm="column" class="md-padding">
+        <h1>What is in there?</h1>
+
+        <p>
+            Around 370'000 images are available for search and navigation. 330'000 comes from the automatic processing
+            of the Cini Foundation photo-collection, so their metadata is in Italian and with possible typos coming from
+            the Optical Character Recognition Process. The other 40'000 were imported from the Web Gallery of Art and
+            have English metadata.
+        </p>
+        <p>
+            As such, it is heavily focused on Venetian art, and we advise you to search for things in Italian.
+        </p>
+
+        <md-divider></md-divider>
+        <h1>Interface</h1>
+        <img src="images/interface.jpg" alt="Interface screenshot">
+
+        <p>
+            The interface is not the most self-explanatory unfortunately, so we recommend to go over this page quickly
+            to familiarize yourself with the possibilities. It allows the combination of <b>two visualisation modes</b>
+            and <b>three(+) search techniques</b>.
+        </p>
+        <p>
+            The top-left tabs are for defining the search query, the two others top blocks (current selection and
+            negative selection) describe the images currently selected which will be used for the visual search queries.
+            Below is the area where the search results are displayed.
+        </p>
+
+        <md-divider></md-divider>
+        <h1>Visualisation modes</h1>
+
+        <h2>List view</h2>
+        <img src="images/list_view.jpg" alt="List view" flex="60" flex-offset="20">
+        <p>
+            The default result view, where images are displayed on a list with their author and description fields.
+            Clicking on the image of the artwork gives the full metadata information available. Clicking on the logo of
+            the provenance takes you back to the original document or the webpage of the corresponding item.
+        </p>
+        <p>
+            For each object, the "+" button adds the image to the <i>current selection</i>, the "-" button to the <i>negative
+            selection</i>, and the "x" button remove the image to any selection it is part of. (See "Search
+            modes"->"Image Search" for the usage).
+        </p>
+
+        <h2>Embedding view</h2>
+        <img src="images/embedding_view.jpg" alt="List view" flex="60" flex-offset="20">
+        <p>
+            The embedding view is another way of representing the current results (from any search) as a visualization
+            map. The images are organized in a visually consistent manner, which can gives a global view of a class of
+            images. The image above for instance represents the 550 images coming from the textual query "Bellini
+            Giovanni Madonna". It can be activated/deactivated with the <b>Show embedding</b> toggle-button on the left.
+        </p>
+        <p>
+            It is possible to zoom and navigate the view with standard google-map-like controls. Left-clicking on an
+            image adds/removes the image to the <i>current selection</i> while right-clicking adds/removes the image to
+            the <i>negative selection</i>.
+        </p>
+        <p>
+            <b>Trick:</b> only a limited number of results are shown at a given time which might be smaller than the
+            total number of results. By default, only 250 images are shown at a time, which might not be enough but
+            allows your computer not to lag too much. If you want to show more, the <i>Options</i> tab allows you to
+            increase this number. However, do not expect to visualize more than 700-800 elements at the same time with
+            the current implementation.
+        </p>
+        <p><i>Some bugs are still present, if you see some weird visual artifacts, just deactivate then reactivate the
+            embedding view, it usually solves display issues.</i></p>
+
+
+        <md-divider></md-divider>
+        <h1>Search modes</h1>
+
+        <p>
+            The top-left tabs show the different search capabilities, it relies on three different search modes, a <b>text</b>
+            metadata search, a global <b>image</b> search, and an experimental <b>detail</b> search. Each of them has a
+            separate tab on the top left.
+        </p>
+
+        <h2>Textual search</h2>
+        <img src="images/text_search.png" alt="Textual search" flex="30" flex-offset="35">
+        <p>
+            This is a standard textual search on the author and description fields of the objects indexed in the
+            database. It uses some fuzzy matching to also return approximate version of titles and authors, so that
+            typos in the data are not preventing us from finding the images. An experimental filter on a date range is
+            also possible, but it usually relies on the identified name of the artist, and uses the corresponding birth
+            and death date.
+        </p>
+        <p>
+            What is <i>important</i> is that the textual search parameters allow to <i>pre-filter the visual search</i>
+            if the <b>filter with metadata</b> box is checked on the two other search modes. So for instance, you can
+            search for similar images in the production of a given artist (only the images of 'Giovanni Bellini' for
+            instance) or for a given scene (only the 'Madonna col Bambino'). This <i>can help a lot with the quality of
+            the results</i> by drastically reducing the number of candidates to compare the visual query to, compared to
+            going through the total 370'000 elements.
+        </p>
+
+        <h2>Image search</h2>
+        <img src="images/image_search.png" alt="Image search" flex="30" flex-offset="35">
+        <p>
+            The image search is only available if at least one image was selected as part of the <i>current
+            selection</i>. The simplest form of search is when you just have one image selected. In that case, the
+            search system tries to automatically find a matching area between the query image and the target images.
+        </p>
+        <p>
+            You can also search with multiple images at the same time, both by using images which should be
+            <i>similar</i> using the images in <i>current selection</i>, and <i>dissimilar</i> images with the images in
+            <i>negative selection</i>.
+        </p>
+        <p>
+            We actually recommend to use the search with a single element in the case of trying to find a pattern
+            reappearing, a close variation or copie. The multiple images search is better suited for looking for
+            sligthly more abstract concept in an iterative way: start with a couple examples and try to find other
+            versions of the same concept. It also synergizes well with the <i>embedding view</i>, as adding positive and
+            negative examples is easy.
+        </p>
+
+        <h2>Detail search</h2>
+        <img src="images/detail_search.png" alt="Detail search" flex="30" flex-offset="35">
+        <p>
+            For the detail search, you <i>need to have only one element in the current selection</i>. You can then click
+            on the <b>Select Image Region</b> button to choose the area of the image you want to use as a query.
+            Unfortunately, the system is not able to track elements which are toot small, so a region which is 20% of
+            the biggest size of the image is roughly the smallest you can expect unfortunately.
+        </p>
+
+        <md-divider></md-divider>
+        <h1>Groups</h1>
+        <p>
+            When you have found a set of images you want to keep for further study, you can save them to a group with
+            the <b>Save to Group</b> button. Every image in your <i>current selection</i> will be added to a
+            newly-created (or an already existing) group. You can then inspect them further on the <b>My Groups</b> link
+            on the top right of the interface.
+        </p>
+        <p>
+            For each group, you can either just get a list view of the elements, where you can delete elements, or add
+            notes to the group. You can also have an embedding view, where an initial positionning is computed for you,
+            then you can drag images around according to the point you want to put across from this set of images. Try
+            it out!
+        </p>
+
+        <md-divider></md-divider>
+        <h1>Some examples</h1>
+        <p>
+            Simple search example: type "Bellini madonna" as a text search, select the first image in your selection (or
+            simply click <a href="#/search?q=7a8fcb5ebb2a4410b761f97fe51d8993" target="_blank">here</a> to get the image
+            directly). Then use the <b>Image Search</b> tab to search with this single image. You should get all the
+            copies/variations of different artists. You should see the results below.
+        </p>
+        <img src="images/search_example.jpg" alt="Detail search" flex="60" flex-offset="20">
+
+        <p>
+            More complex: start with a standard Bassano work (for instance <a
+                href="#/search?q=973c355b232b429aaf51d0632f8e4fc5" target="_blank">this one</a>). Use "Bassano" as a
+            search query to only search through the Bassano works, go on the <b>Detail Search</b> tab, check the <b>filter
+            with metadata</b> toggle (so that the system will only search through the Bassano works), and select a box
+            around the kneeling lady in the front before pressing search, you should see the results below.
+        </p>
+
+        <img src="images/detail_example.jpg" alt="Detail search" flex="80" flex-offset="10">
+
+        <md-divider></md-divider>
+        <h1>Duplicate Comparisons</h1>
+        <p>
+            Sometimes it is hard to detect if two photographs are from the same artwork or not, given the ability of
+            certain painters to replicate their own work. For this, you can select two images in your <i>Current
+            Selection</i>, and use the well-hidden button in <i>"Options"->"Compare 2 Images"</i>. For instance, you can
+            visualize the tiny differences between two famous Brueghel works <a target="_blank"
+                                                                                href="api/transition_gif/9e52fea837444678bd6fdea288ba054c/1024e13a247d45ef9ceb3f98986d15d5">here</a>.
+        </p>
+        <p>
+            <i>NB:</i> this a slow process and only works for very similar images, close copies or before/after
+            restoration.
+        </p>
+
+    </md-card>
+
+</md-content>

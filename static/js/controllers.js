@@ -63,6 +63,10 @@ replicaModule.config(function ($stateProvider, $urlRouterProvider, $authProvider
             url: "/stats",
             templateUrl: "partials/stats.html"
         })
+        .state('help', {
+            url: "/help",
+            templateUrl: "partials/help.html"
+        })
         .state('login', {
             controller: 'loginController',
             url: "/login",

@@ -60,7 +60,7 @@
                                         mr-drawer="drawer" mr-selector="{enabled: False}"
                                         mr-max-width="100"></div>
                                 </div>-->
-                                <md-button class="md-primary" ng-disabled="current_selection.length==0"
+                                <md-button class="md-primary md-raised" ng-disabled="current_selection.length==0"
                                            ng-click="showCropperDialog($event,current_selection[0].images[0])">
                                     Select Image Region
                                 </md-button>
@@ -94,7 +94,7 @@
                                 <md-switch flex="50" ng-model="$parent.$parent.showSideQuery" aria-label="Show query on the side">
                                     Show query
                                 </md-switch>
-                                <md-button class="md-primary" flex="50" ng-disabled="current_selection.length!=2" target="_blank"
+                                <md-button class="md-primary md-raised" flex="50" ng-disabled="current_selection.length!=2" target="_blank"
                                            ng-href="/api/transition_gif/{{current_selection[0].images[0].uid}}/{{current_selection[1].images[0].uid}}">
                                     Compare 2 Images
                                 </md-button>
@@ -266,9 +266,15 @@
                 </div>
             </div>
             <div flex>
-                <md-button flex ng-click="getRandom()" ng-if="filteredResults.length==0" class="md-primary">
+                <div layout="row" ng-if="filteredResults.length==0">
+                    <md-button flex class="md-primary md-raised"
+                    target="_blank" ui-sref="help">
+                    First timer? Get some explanations here
+                </md-button>
+                <md-button flex ng-click="getRandom()" class="md-primary md-raised">
                     Don't know where to start? Show me random images
                 </md-button>
+                </div>
                 <div class='results' layout="row" layout-wrap layout-align="space-between"
                      infinite-scroll='showMoreResults()' ng-if="!showResultsAsEmbedding">
                     <!--<md-grid-list md-cols="4"
