@@ -49,11 +49,11 @@ angular.module('replicaModule')
 
 
         $scope.refreshData = function () {
-            $http.get('api/group/'+$scope.groupUid).then(
+            $http.get(base_api_url+'api/group/'+$scope.groupUid).then(
                 function(response) {
                     $scope.groupData = response.data;
                     $scope.queriesUid = $scope.groupData.images.map(function(img) {return img.uid;});
-                    $http.post('api/graph', {image_uids: $scope.queriesUid}).then(
+                    $http.post(base_api_url+'api/graph', {image_uids: $scope.queriesUid}).then(
                         function (response) {
                             //TODO Merge more properly so positions are not reseted
                             $scope.data = response.data;

@@ -2,6 +2,8 @@
  * Created by benoit on 18/01/2016.
  */
 
+var base_api_url = '';
+
 var replicaModule = angular.module('replicaModule', [
     'mrImage', 'ui.router', 'ngMaterial', 'ngCookies', 'ngMessages',
     'naif.base64', 'satellizer', 'angular-inview', 'hl.sticky',
@@ -9,7 +11,7 @@ var replicaModule = angular.module('replicaModule', [
 
 replicaModule.config(function ($stateProvider, $urlRouterProvider, $authProvider) {
 
-    $authProvider.loginUrl = '/api/auth';
+    $authProvider.loginUrl = base_api_url+'/api/auth';
     //
     // For any unmatched url, redirect to /search
     $urlRouterProvider.otherwise("/search");
@@ -191,7 +193,7 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
             $scope.locals = locals;
             $scope.element = null;
             $scope.showImageDialog = rootScope.showImageDialog;
-            $http.get('api/image/'+locals.image_uid).then(
+            $http.get(base_api_url+'api/image/'+locals.image_uid).then(
             function (response) {
                 $scope.element = response.data;
             }, function (response) {
@@ -287,7 +289,7 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
 replicaModule.controller('proposalsListController', function ($scope, $http, $mdDialog, $cookies, $mdToast, $state) {
     $scope.proposalsList = [];
     $scope.refreshProposals = function () {
-        $http.get('api/link/proposal/random', {nb_proposals:50}).then(
+        $http.get(base_api_url+'api/link/proposal/random', {nb_proposals:50}).then(
             function (response) {
                 $scope.proposalsList = response.data;
             }, function (response) {
@@ -334,7 +336,7 @@ replicaModule.controller('proposalsListController', function ($scope, $http, $md
                 var link = data.link;
                 var link_type = data.link_type;
 
-                $http.post('api/link/create', {
+                $http.post(base_api_url+'api/link/create', {
                         img1_uid: link.img1.uid, img2_uid: link.img2.uid,
                         type: data.link_type
                     }
@@ -353,7 +355,7 @@ replicaModule.controller('proposalsListController', function ($scope, $http, $md
 replicaModule.controller('groupsListController', function ($scope, $http, $mdDialog, $cookies, $mdToast, $state) {
     $scope.groups = [];
     $scope.refreshGroups = function () {
-        $http.get('api/user/groups').then(
+        $http.get(base_api_url+'api/user/groups').then(
             function (response) {
                 $scope.groups = response.data.groups;
             }, function (response) {
@@ -363,7 +365,7 @@ replicaModule.controller('groupsListController', function ($scope, $http, $mdDia
     $scope.deleteGroup = function (group_uid) {
         $scope.confirmDialog('Delete', 'Are you sure you want to delete this group?').then(
             function () {
-                $http.delete('api/group/'+group_uid).then(
+                $http.delete(base_api_url+'api/group/'+group_uid).then(
                 function (response) {
                     $scope.alertDialog('Alert', 'Group deleted');
                     $scope.refreshGroups();
@@ -381,7 +383,7 @@ replicaModule.controller('groupEditController', function ($scope, $http, $mdDial
     $scope.groupUid = $stateParams.groupUid;
     $scope.groupData = {};
     $scope.refreshGroup = function () {
-        $http.get('api/group/'+$scope.groupUid).then(
+        $http.get(base_api_url+'api/group/'+$scope.groupUid).then(
             function (response) {
                 $scope.groupData = response.data;
             }, function (response) {
@@ -400,7 +402,7 @@ replicaModule.controller('groupEditController', function ($scope, $http, $mdDial
         return $scope.groupData.owner.uid == $scope.getUserUid();
     };
     $scope.saveGroup = function() {
-        $http.put('api/group/'+$scope.groupUid,
+        $http.put(base_api_url+'api/group/'+$scope.groupUid,
             {
                 label: $scope.groupData.label,
                 notes: $scope.groupData.notes,
@@ -565,7 +567,7 @@ replicaModule.controller('statsController', function ($scope, $http, $mdDialog, 
     $scope.stats = [];
 
     $scope.refreshStats = function () {
-        $http.get('api/stats').then(
+        $http.get(base_api_url+'api/stats').then(
             function (response) {
                 $scope.stats = response.data.stats;
             }, function (response) {
@@ -586,7 +588,7 @@ replicaModule.controller('screenSaverController', function ($interval, $scope, $
     }
 
     var reloadElements = function () {
-        $http.get('api/element/random').then(
+        $http.get(base_api_url+'api/element/random').then(
             function (response) {
                 var query = response.data[0];
                 var request = {
@@ -594,7 +596,7 @@ replicaModule.controller('screenSaverController', function ($interval, $scope, $
                     "negative_image_uids": [],
                     "nb_results": 50
                 };
-                $http.post("/api/image/search", request).then(
+                $http.post(base_api_url+"/api/image/search", request).then(
                     function (response) {
                         var elements = response.data.results;
                         preloader.preloadImages( elements.map(getImageThumbnail) )

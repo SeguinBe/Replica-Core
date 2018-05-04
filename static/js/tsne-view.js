@@ -111,7 +111,7 @@ angular.module('replicaModule')
                 if (scope.elements.length == 0)
                     return;
 
-                $http.post("/api/image/distance_matrix",
+                $http.post(base_api_url+"/api/image/distance_matrix",
                     {
                         image_uids: scope.elements.map(function(d) {return d.images[0].uid}),
                         index: scope.indexKey

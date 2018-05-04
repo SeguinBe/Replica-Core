@@ -30,7 +30,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     }
 
     function updateLinks() {
-        $http.post('api/link/related',
+        $http.post(base_api_url+'api/link/related',
             {
                 image_uids: $scope.results.map(function (e) {
                     return e.images[0].uid
@@ -85,7 +85,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
 
     $scope.getRandom = function () {
         var request = makeMetadataRequest();
-        $http.get('api/element/random',
+        $http.get(base_api_url+'api/element/random',
             {params: {'nb_elements': $scope.nbResults}}).then(
             function (response) {
                 $scope.results = response.data;
@@ -102,7 +102,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     };
     $scope.searchText = function () {
         var request = makeMetadataRequest();
-        $http.get('api/search/text',
+        $http.get(base_api_url+'api/search/text',
             {params: request}).then(
             function (response) {
                 $scope.results = response.data.results;
@@ -136,7 +136,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
         if ($scope.filterImageSearchMetadata) {
             request.metadata = makeMetadataRequest();
         }
-        $http.post("/api/image/search", request).then(
+        $http.post(base_api_url+"/api/image/search", request).then(
             function (response) {
                 $scope.results = response.data.results;
                 $scope.resultsDisplayed = resultsDisplayedInitial;
@@ -171,7 +171,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
         if ($scope.filterImageSearchMetadata) {
             request.metadata = makeMetadataRequest();
         }
-        $http.post("/api/image/search_region", request, {timeout: 20000}).then(
+        $http.post(base_api_url+"/api/image/search_region", request, {timeout: 20000}).then(
             function (response) {
                 $scope.results = response.data.results;
                 $scope.resultsDisplayed = resultsDisplayedInitial;
@@ -193,7 +193,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     };
     $scope.addToGroup = function () {
         //fetch groups
-        $http.get('api/user/groups').then(
+        $http.get(base_api_url+'api/user/groups').then(
             function(response) {
                 add_group_dialog(response.data.groups);
             },
@@ -255,7 +255,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
                             label: $scope.group_label,
                             image_uids: getImageUids()
                         };
-                        $http.post('api/group', request).then(
+                        $http.post(base_api_url+'api/group', request).then(
                             function(response) {
                                 rootScope.showSimpleToast('Group added');
                                 $mdDialog.hide();
@@ -266,7 +266,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
                         )
                     };
                     $scope.addToGroup = function(group_uid) {
-                        $http.post('api/group/'+group_uid+'/add', {image_uids: getImageUids()}).then(
+                        $http.post(base_api_url+'api/group/'+group_uid+'/add', {image_uids: getImageUids()}).then(
                             function(response) {
                                 rootScope.showSimpleToast('Added to group');
                                 $mdDialog.hide();
@@ -342,7 +342,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
                                 type: this.type,
                                 personal: rootScope.experiment_mode
                             };
-                            $http.post('api/link/create',
+                            $http.post(base_api_url+'api/link/create',
                                 request
                             ).then(function () {
                                     l.status = 'ADDED';
@@ -473,7 +473,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     function loadElementsFromIdList(ids, resultArr) {
         if (ids !== undefined) {
             for (var n = 0; n < ids.length; n++)
-                $http.get('api/element/' + ids[n]).then(
+                $http.get(base_api_url+'api/element/' + ids[n]).then(
                     function (response) {
                         resultArr.push(response.data);
                         updateState();
@@ -502,7 +502,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
 
     function logEvent(evt, evt_data) {
         $http.post(
-            'api/log',
+            base_api_url+'api/log',
             {
                 data: {
                     event: evt,
