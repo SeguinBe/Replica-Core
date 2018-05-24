@@ -48,7 +48,7 @@ angular.module('replicaModule').directive('imgBox', function() {
                     scope.imageSrc = getImageThumbnail(scope.displayElement);
                 });
             };
-            scope.imageSrc = "https://d13yacurqjgara.cloudfront.net/users/12755/screenshots/1037374/hex-loader2.gif";
+            scope.imageSrc = "loader.gif";
             var loading = false;
             scope.loadImage = function() {
                 if (!loading) {
@@ -57,7 +57,7 @@ angular.module('replicaModule').directive('imgBox', function() {
                 }
             };
             scope.$watch('displayElement.uid', function() {
-                scope.imageSrc = "https://d13yacurqjgara.cloudfront.net/users/12755/screenshots/1037374/hex-loader2.gif";
+                scope.imageSrc = "loader.gif";
                 if (loading) {
                     loading = false;
                     scope.loadImage();
