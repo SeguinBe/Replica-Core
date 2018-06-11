@@ -260,7 +260,7 @@ class ImageResource(Resource):
 
 @api.route('/api/link/<string:uid>')
 class LinkResource(Resource):
-    @api.marshal_with(api.models['VisualLink'])
+    @api.marshal_with(api.models['VisualLink_ext'])
     def get(self, uid):
         link = model.VisualLink.nodes.get_or_none(uid=uid)  # type: model.VisualLink
         if link is None:
