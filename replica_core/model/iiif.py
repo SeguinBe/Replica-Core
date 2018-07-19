@@ -187,6 +187,15 @@ class CHO(StructuredNode, IsPartOfCollection, BaseElement, IIIFMetadata):
         return CHO.inflate(results[0][0])
 
     @classmethod
+    def get_from_image_uids(cls, image_uids: List[str]) -> List['CHO']:
+        results, _ = db.cypher_query(
+            "match (n1:CHO)-[IS_SHOWN_BY]-(n2:Image) where n2.uid IN {image_uids} return n1, n2.uid",
+            params={'image_uids': image_uids}
+        )
+        key_order = {r[1]: cls.inflate(r[0]) for r in results}
+        return [key_order[_id] for _id in image_uids]
+
+    @classmethod
     def get_image_uids_from_ids(cls, ids: List[int]) -> List['str']:
         results, _ = db.cypher_query(
             "match (n1:CHO)-[IS_SHOWN_BY]-(n2:Image) where id(n1) IN {ids} return n1.uid, n2.uid",

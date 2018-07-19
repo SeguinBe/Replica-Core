@@ -15,6 +15,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     $scope.experiment_id = 0;
     $scope.limitFilteredResults = null;
     $scope.filterImageSearchMetadata = false;
+    $scope.filterSearchDuplicates = false;
     $scope.imageSearchRerank = true;
     $scope.totalSearched = 0;
     var resultsDisplayedInitial = 16;
@@ -102,6 +103,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     };
     $scope.searchText = function () {
         var request = makeMetadataRequest();
+        request.filter_duplicates = $scope.filterSearchDuplicates? 1 : 0;
         $http.get(base_api_url+'api/search/text',
             {params: request}).then(
             function (response) {
@@ -131,7 +133,8 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
             negative_image_uids: negative_image_ids,
             nb_results: $scope.nbResults,
             index: $scope.indexKey,
-            rerank: $scope.imageSearchRerank
+            rerank: $scope.imageSearchRerank,
+            filter_duplicates: $scope.filterSearchDuplicates
         };
         if ($scope.filterImageSearchMetadata) {
             request.metadata = makeMetadataRequest();
@@ -166,7 +169,8 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
             "box_w": $scope.current_selection[0].images[0].box.w,
             "nb_results": $scope.nbResults,
             "reranking_results": 4000,
-            "index": $scope.indexKey
+            "index": $scope.indexKey,
+            "filter_duplicates": $scope.filterSearchDuplicates
         };
         if ($scope.filterImageSearchMetadata) {
             request.metadata = makeMetadataRequest();

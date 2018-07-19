@@ -94,13 +94,16 @@
                                 <md-switch flex="50" ng-model="$parent.$parent.showSideQuery" aria-label="Show query on the side">
                                     Show query
                                 </md-switch>
-                                <md-button class="md-primary md-raised" flex="50" ng-disabled="current_selection.length!=2" target="_blank"
+                                <md-switch ng-model="$parent.$parent.filterSearchDuplicates" aria-label="Filter the results with the metadata query">
+                                    Filter duplicates
+                                </md-switch>
+                            </div>
+                            <div layout="row">
+                                <md-button class="md-primary md-raised" flex="40" ng-disabled="current_selection.length!=2" target="_blank"
                                            ng-href="/api/transition_gif/{{current_selection[0].images[0].uid}}/{{current_selection[1].images[0].uid}}">
                                     Compare 2 Images
                                 </md-button>
-                            </div>
-                            <div layout="row">
-                                <span>Number of results</span>
+                                <span>Nb results</span>
                                 <md-slider flex class="md-primary" md-discrete ng-model="$parent.$parent.nbResults" step="10" min="20"
                                            max="800" aria-label="Number of Results">
                                 </md-slider>

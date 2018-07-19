@@ -1,7 +1,7 @@
 import neomodel
 from neomodel import StructuredNode, StructuredRel, db
 from neomodel import StringProperty, DateTimeProperty, ArrayProperty, UniqueIdProperty, EmailProperty, \
-    RelationshipFrom, RelationshipTo, Relationship, JSONProperty, IntegerProperty
+    RelationshipFrom, RelationshipTo, Relationship, JSONProperty, IntegerProperty, FloatProperty
 from flask_restplus import fields, Model
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -45,6 +45,7 @@ class BaseElement:
         result = dict()
         conversion_dict = {
             StringProperty: fields.String,
+            FloatProperty: fields.Float,
             DateTimeProperty: fields.DateTime,
             JSONProperty: fields.Raw,
             EmailProperty: fields.String,
@@ -113,9 +114,17 @@ class BaseElement:
     @classmethod
     def get_by_ids(cls, _ids):
         query = "MATCH (a) WHERE id(a) IN {ids} RETURN a"
-        results, meta = db.cypher_query(query, {'ids': _ids})
+        results, meta = db.cypher_query(query, {'ids': list(_ids)})
         unordered_results = [cls.inflate(r[0]) for r in results]
-        key_order = {cho.id: cho for cho in unordered_results}
+        key_order = {e.id: e for e in unordered_results}
+        return [key_order[_id] for _id in _ids]
+
+    @classmethod
+    def get_by_uids(cls, _ids):
+        query = "MATCH (a) WHERE a.uid IN {ids} RETURN a"
+        results, meta = db.cypher_query(query, {'ids': list(_ids)})
+        unordered_results = [cls.inflate(r[0]) for r in results]
+        key_order = {e.uid: e for e in unordered_results}
         return [key_order[_id] for _id in _ids]
 
     @classmethod

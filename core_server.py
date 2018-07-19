@@ -523,6 +523,7 @@ class SearchTextResource(Resource):
     parser.add_argument('all_terms', type=int, default=1)
     parser.add_argument('min_date', type=int)
     parser.add_argument('max_date', type=int)
+    parser.add_argument('filter_duplicates', type=int, default=0)
 
     @api.marshal_with(model_text_search)
     @api.expect(parser)
@@ -537,6 +538,8 @@ class SearchTextResource(Resource):
             results = model.CHO.get_by_ids(ids)
         else:
             results = model.CHO.search(q, nb_results)
+        if args['filter_duplicates']:
+            results = model.utils.filter_duplicates_cho(results)
         return {'query': q, 'results': [r.to_dict() for r in results], 'total': total_results}
 
 
@@ -549,6 +552,7 @@ class SearchImageResource(Resource):
     parser.add_argument('index', type=str, location='json')
     parser.add_argument('metadata', type=dict)
     parser.add_argument('rerank', type=bool, default=False, location='json')
+    parser.add_argument('filter_duplicates', type=bool, default=False, location='json')
 
     @api.marshal_with(model_image_search_region)
     @api.expect(parser)
@@ -572,8 +576,17 @@ class SearchImageResource(Resource):
             raise BadRequest('Bad answer from the search server : {}'.format(r.json().get('message')))
         result_output = []
         request_output = r.json()
-        for result in request_output['results']:
-            r = model.CHO.get_from_image_uid(result['uid']).to_dict()
+        result_output_raw = request_output['results']
+        # Filter duplicates
+        if args['filter_duplicates']:
+            image_uids = [r['uid'] for r in result_output_raw]
+            image_uids = set(model.utils.filter_duplicates_image_uids(image_uids))
+            result_output_raw = [r for r in result_output_raw if r['uid'] in image_uids]
+
+        chos = model.CHO.get_from_image_uids([r['uid'] for r in result_output_raw])
+        assert len(result_output_raw) == len(chos)
+        for result, cho in zip(result_output_raw, chos):
+            r = cho.to_dict()
             if 'box' in result.keys():
                 r['images'][0]['box'] = result['box']
             result_output.append(r)
@@ -621,6 +634,7 @@ class SearchImageResource(Resource):
     parser.add_argument('nb_results', type=int, default=100)
     parser.add_argument('index', type=str, location='json')
     parser.add_argument('metadata', type=dict)
+    parser.add_argument('filter_duplicates', type=bool, default=False, location='json')
 
     @api.marshal_with(model_image_search_region)
     @api.expect(parser)
@@ -644,8 +658,15 @@ class SearchImageResource(Resource):
             raise BadRequest('Bad answer from the search server : {}'.format(r.json().get('message')))
         result_output = []
         request_output = r.json()
-        for result in request_output['results']:
-            r = model.CHO.get_from_image_uid(result['uid']).to_dict()
+        result_output_raw = request_output['results']
+        if args['filter_duplicates']:
+            image_uids = [r['uid'] for r in result_output_raw]
+            image_uids = set(model.utils.filter_duplicates_image_uids(image_uids))
+            result_output_raw = [r for r in result_output_raw if r['uid'] in image_uids]
+
+        chos = model.CHO.get_from_image_uids([r['uid'] for r in result_output_raw])
+        for result, cho in zip(result_output_raw, chos):
+            r = cho.to_dict()
             r['images'][0]['box'] = result['box']
             result_output.append(r)
         return {'results': result_output, 'total': request_output['total']}

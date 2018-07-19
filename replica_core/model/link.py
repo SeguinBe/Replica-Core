@@ -45,6 +45,11 @@ class VisualLink(StructuredNode, BaseElement):
     # Integer value for relative strength encoding
     strength = IntegerProperty()
 
+    # If it comes from a bot-prediction
+    prediction_score = FloatProperty()
+    # Spatial overlap if it was computed, useful to distinguish complete duplicate to partial ones
+    spatial_spread = FloatProperty()
+
     images = RelationshipTo('.iiif.Image', 'LINKS', model=LinkImageRel)
 
     def annotate(self, user: 'User', link_type: 'Type'):

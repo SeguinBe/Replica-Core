@@ -56,6 +56,6 @@ The import script takes two additional parameters in order to specify which IIIF
 
 ```
 bin/neo4j stop
-bin/neo4j-admin dump --to=/mnt/cluster-nas/benoit/neo4j_backups/2018_06_11.dump
+bin/neo4j-admin dump --to=/mnt/cluster-nas/benoit/neo4j_backups/2018_07_19.dump
 bin/neo4j start
 ```
