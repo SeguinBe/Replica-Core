@@ -143,7 +143,8 @@ def create_image(resource, overwrite_ok=True):
            resource['service'].get('profile', '').startswith(_standard_str_old) or \
            resource['service'].get('dcterms:conformsTo', '').startswith(_standard_str) or \
            resource['service'].get('profile', '').startswith(_standard_str)
-    iiif_url = resource['service']['@id']
+    iiif_url = resource['service']['@id']  # type: str
+    assert iiif_url.startswith('https://'), "IIIF Manifests MUST BE HTTPS"
     img = Image.nodes.get_or_none(iiif_url=iiif_url)
     if img is not None and not overwrite_ok:
         raise Exception()
