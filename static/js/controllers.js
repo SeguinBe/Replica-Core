@@ -7,7 +7,7 @@ var base_api_url = '';
 var replicaModule = angular.module('replicaModule', [
     'mrImage', 'ui.router', 'ngMaterial', 'ngCookies', 'ngMessages',
     'naif.base64', 'satellizer', 'angular-inview', 'hl.sticky',
-    'angulartics', 'angulartics.google.analytics']);
+    'angulartics', 'angulartics.google.analytics', "ui.openseadragon"]);
 
 replicaModule.config(function ($stateProvider, $urlRouterProvider, $authProvider) {
 
@@ -180,7 +180,7 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
             multiple: true
         });
 
-        function DialogController($scope, $mdDialog, $sce, locals, rootScope) {
+        function DialogController($scope, $mdDialog, $sce, $window, locals, rootScope) {
             $scope.getImage = function (e) {
                 if (e != undefined)
                     return e.iiif_url + "/full/!1000,1000/0/default.jpg";
@@ -194,6 +194,10 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
             $scope.element = null;
             $scope.physicallyLinked = [];
             $scope.visuallyLinked = [];
+            $scope.innerHeight = $window.innerHeight;
+            $scope.openseadragonOptions = {
+                prefixUrl: "http://openseadragon.github.io/openseadragon/images/"
+            };
             $scope.showImageDialog = rootScope.showImageDialog;
             $http.get(base_api_url+'api/image/'+locals.image_uid).then(
             function (response) {
@@ -203,8 +207,8 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
                         $scope.physicallyLinked.push(l);
                     if (l.type === 'POSITIVE')
                         $scope.visuallyLinked.push(l);
-                    console.log(l);
-                })
+                });
+                //$scope.openseadragonOptions.tileSources.push($scope.element.iiif_url);
             }, function (response) {
                 $scope.showSimpleToast("Unable to fetch image details : " + response.status + " " + response.data);
             });

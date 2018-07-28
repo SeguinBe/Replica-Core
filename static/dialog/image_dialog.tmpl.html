@@ -1,4 +1,4 @@
-<md-dialog aria-label="" ng-cloak>
+<md-dialog aria-label="" ng-cloak flex="80">
     <form>
         <md-dialog-content>
             <div class="md-dialog-content">
@@ -66,8 +66,9 @@
                         </md-card>
 
                     </div>
-                    <div class="image-container" flex="60">
-                        <img ng-src="{{ getImage(element) }}"/>
+                    <div class="image-container" flex="60" ng-if="element.iiif_url" style="height: {{ innerHeight }}px">
+                        <seadragon tilesource="{{ element.iiif_url }}" options="openseadragonOptions" style="height: 600px"></seadragon>
+                        <!--<img ng-src="{{ getImage(element) }}"/>-->
                     </div>
                 </div>
             </div>
