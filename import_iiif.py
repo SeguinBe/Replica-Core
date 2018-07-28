@@ -83,6 +83,7 @@ def create_cho(data, overwrite_ok=True):
     assert 'sequences' in data.keys()
 
     # Parse Manifest base
+    assert uri.startswith('https://'), "IIIF Manifests MUST BE HTTPS"
     cho = CHO.nodes.get_or_none(uri=uri)
     if cho is not None and not overwrite_ok:
         raise Exception()

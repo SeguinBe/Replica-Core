@@ -8,6 +8,7 @@
                         <h2>{{ element.cho.title }}</h2>
                     </div>
                     <div>
+                        </a>
                         <md-button ui-sref="search({q: element.cho.uid})"
                                    class="md-icon-button md-primary"
                                    aria-label="Search" target="_blank">
@@ -20,6 +21,9 @@
                 <div layout-gt-sm="row">
                     <div flex="40">
                         <p>
+                            <a target="_blank" ng-href="http://universalviewer.io/uv.html?manifest={{ element.cho.uri }}">
+                              <img src="images/logo-iiif.png" alt="IIIF Drag-n-drop"/>
+                            </a>
                             Object id : {{ element.cho.uid }}
                         </p>
                         <p>
