@@ -529,6 +529,8 @@ class SearchTextResource(Resource):
     @api.expect(parser)
     def get(self):
         args = self.parser.parse_args()
+        if args['filter_duplicates']:
+            args['nb_results'] = int(2.5*args['nb_results'])
         q = args['query']
         nb_results = args['nb_results']
         min_date = args['min_date']  # type: Optional[int]
@@ -540,6 +542,7 @@ class SearchTextResource(Resource):
             results = model.CHO.search(q, nb_results)
         if args['filter_duplicates']:
             results = model.utils.filter_duplicates_cho(results)
+        results = results[:nb_results]
         return {'query': q, 'results': [r.to_dict() for r in results], 'total': total_results}
 
 
@@ -558,6 +561,8 @@ class SearchImageResource(Resource):
     @api.expect(parser)
     def post(self):
         args = self.parser.parse_args()
+        if args['filter_duplicates']:
+            args['nb_results'] = int(2.5*args['nb_results'])
         if args.get('metadata'):
             metadata = args['metadata']
             ids, _ = elastic_search_ids(metadata.get('query', ''),
@@ -590,6 +595,7 @@ class SearchImageResource(Resource):
             if 'box' in result.keys():
                 r['images'][0]['box'] = result['box']
             result_output.append(r)
+        result_output = result_output[:args['nb_results']]
         return {'results': result_output, 'total': request_output['total']}
 
 
@@ -640,6 +646,8 @@ class SearchImageResource(Resource):
     @api.expect(parser)
     def post(self):
         args = self.parser.parse_args()
+        if args['filter_duplicates']:
+            args['nb_results'] = int(2.5*args['nb_results'])
         if args.get('metadata'):
             metadata = args['metadata']
             ids, _ = elastic_search_ids(metadata.get('query', ''),
@@ -669,6 +677,7 @@ class SearchImageResource(Resource):
             r = cho.to_dict()
             r['images'][0]['box'] = result['box']
             result_output.append(r)
+        result_output = result_output[:args['nb_results']]
         return {'results': result_output, 'total': request_output['total']}
 
 

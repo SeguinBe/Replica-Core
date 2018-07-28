@@ -44,7 +44,8 @@
         </p>
 
         <h2>Embedding view</h2>
-        <img src="images/embedding_view.jpg" alt="List view" flex="60" flex-offset="20">
+        <!--<img src="images/embedding_view.jpg" alt="List view" flex="60" flex-offset="20">-->
+        <img src="images/map_non_physical.png" alt="Filtered map" flex="80" flex-offset="10">
         <p>
             The embedding view is another way of representing the current results (from any search) as a visualization
             map. The images are organized in a visually consistent manner, which can gives a global view of a class of
@@ -56,6 +57,16 @@
             image adds/removes the image to the <i>current selection</i> while right-clicking adds/removes the image to
             the <i>negative selection</i>.
         </p>
+
+        <p>
+            <b>Trick:</b> in this view, duplicate links might cluttered the visualization and the reorganization of the
+            elements, it can be useful to toggle the "Filter duplicates" option in the "Options" tab (this doesn't trigger
+            a new search, you have to ask for a new query, by pressing enter in the textual input or clicking the magnifier
+            for a new visual search). Differences can be seen below, where the non-filtered version of the same visualization
+            is shown.
+        </p>
+        <img src="images/map_physical.png" alt="Non filtered map" flex="60" flex-offset="20">
+
         <p>
             <b>Trick:</b> only a limited number of results are shown at a given time which might be smaller than the
             total number of results. By default, only 250 images are shown at a time, which might not be enough but
@@ -65,6 +76,7 @@
         </p>
         <p><i>Some bugs are still present, if you see some weird visual artifacts, just deactivate then reactivate the
             embedding view, it usually solves display issues.</i></p>
+
 
 
         <md-divider></md-divider>
