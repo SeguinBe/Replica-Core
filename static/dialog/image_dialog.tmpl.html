@@ -32,15 +32,27 @@
                         </a>
                         </p>
 
-                        <h3 ng-if="element.links.length>0">Linked with</h3>
+                        <h3 ng-if="visuallyLinked.length>0">Visually Linked with</h3>
                         <div layout="row" layout-wrap layout-align="space-between">
-                            <md-card flex="25" ng-repeat="img_l in element.links">
+                            <md-card flex="25" ng-repeat="img_l in visuallyLinked">
                                 <div class="img-container">
                                     <img-box element="img_l.image"
                                              display-size="450"
                                              ng-click="showImageDialog($event, img_l.image.uid)"/>
                                 </div>
-                                <md-card-content>{{ img_l.type }}</md-card-content>
+                                <md-card-content>{{ img_l.image.cho.author }}</md-card-content>
+                            </md-card>
+                        </div>
+
+                        <h3 ng-if="physicallyLinked.length>0">Physically Linked with</h3>
+                        <div layout="row" layout-wrap layout-align="space-between">
+                            <md-card flex="25" ng-repeat="img_l in physicallyLinked">
+                                <div class="img-container">
+                                    <img-box element="img_l.image"
+                                             display-size="450"
+                                             ng-click="showImageDialog($event, img_l.image.uid)"/>
+                                </div>
+                                <md-card-content>{{ img_l.image.cho.author }}</md-card-content>
                             </md-card>
                         </div>
 

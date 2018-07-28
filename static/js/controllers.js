@@ -192,10 +192,19 @@ replicaModule.controller('mainController', function ($scope, $http, $mdDialog, $
             };
             $scope.locals = locals;
             $scope.element = null;
+            $scope.physicallyLinked = [];
+            $scope.visuallyLinked = [];
             $scope.showImageDialog = rootScope.showImageDialog;
             $http.get(base_api_url+'api/image/'+locals.image_uid).then(
             function (response) {
                 $scope.element = response.data;
+                $scope.element.links.forEach(function (l) {
+                    if (l.type === 'DUPLICATE')
+                        $scope.physicallyLinked.push(l);
+                    if (l.type === 'POSITIVE')
+                        $scope.visuallyLinked.push(l);
+                    console.log(l);
+                })
             }, function (response) {
                 $scope.showSimpleToast("Unable to fetch image details : " + response.status + " " + response.data);
             });
