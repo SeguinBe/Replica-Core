@@ -529,14 +529,14 @@ class SearchTextResource(Resource):
     @api.expect(parser)
     def get(self):
         args = self.parser.parse_args()
+        nb_results = args['nb_results']
         if args['filter_duplicates']:
             args['nb_results'] = int(2.5*args['nb_results'])
         q = args['query']
-        nb_results = args['nb_results']
         min_date = args['min_date']  # type: Optional[int]
         max_date = args['max_date']  # type: Optional[int]
         if True:
-            ids, total_results = elastic_search_ids(q, args['all_terms'], min_date, max_date, nb_results)
+            ids, total_results = elastic_search_ids(q, args['all_terms'], min_date, max_date, args['nb_results'])
             results = model.CHO.get_by_ids(ids)
         else:
             results = model.CHO.search(q, nb_results)
@@ -561,6 +561,7 @@ class SearchImageResource(Resource):
     @api.expect(parser)
     def post(self):
         args = self.parser.parse_args()
+        nb_results = args['nb_results']
         if args['filter_duplicates']:
             args['nb_results'] = int(2.5*args['nb_results'])
         if args.get('metadata'):
@@ -595,7 +596,7 @@ class SearchImageResource(Resource):
             if 'box' in result.keys():
                 r['images'][0]['box'] = result['box']
             result_output.append(r)
-        result_output = result_output[:args['nb_results']]
+        result_output = result_output[:nb_results]
         return {'results': result_output, 'total': request_output['total']}
 
 
@@ -646,6 +647,7 @@ class SearchImageResource(Resource):
     @api.expect(parser)
     def post(self):
         args = self.parser.parse_args()
+        nb_results = args['nb_results']
         if args['filter_duplicates']:
             args['nb_results'] = int(2.5*args['nb_results'])
         if args.get('metadata'):
@@ -677,7 +679,7 @@ class SearchImageResource(Resource):
             r = cho.to_dict()
             r['images'][0]['box'] = result['box']
             result_output.append(r)
-        result_output = result_output[:args['nb_results']]
+        result_output = result_output[:nb_results]
         return {'results': result_output, 'total': request_output['total']}
 
 
