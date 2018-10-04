@@ -609,6 +609,15 @@ class TransitionGifResource(Resource):
                         content_type=req.headers['content-type'])
 
 
+@api.route('/api/transition_gif_validity/<string:uid1>/<string:uid2>')
+class TransitionGifResource(Resource):
+    def get(self, uid1, uid2):
+        req = requests.get(app.config['REPLICA_SEARCH_URL'] + '/api/transition_gif_validity/{}/{}'.format(uid1, uid2),
+                           stream=True)
+        return Response(stream_with_context(req.iter_content(chunk_size=10000)),
+                        content_type=req.headers['content-type'])
+
+
 @api.route('/api/image/distance_matrix')
 class DistanceMatrixResource(Resource):
     parser = api.parser()
