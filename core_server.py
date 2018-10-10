@@ -456,11 +456,22 @@ class LinkResource(Resource):
 #        return {'links': [l.to_dict(extended=True) for l in model.VisualLink.nodes.all()]}
 
 
-def elastic_search_ids(query, all_terms=False, min_date=None, max_date=None, nb_results=200):
+def elastic_search_ids(query=None, all_terms=False, min_date=None, max_date=None, nb_results=200):
     base_query = {
         "bool": {
              "must": [
-                 {
+
+                #{'match': {"attribution": {"query": 'Web Gallery of Art'}}}
+                ],
+             #"must_not": {'match': {"title": {"query": 'detail'}}}
+             #"filter": ,
+             #"must_not": [{'match': {"title": {"query": 'detail'}}},
+                          #{'match': {"attribution": {"query": 'Fondazione Giorgio Cini'}}}
+             #             ]
+         }
+    }
+    if query is not None and query != "":
+        base_query['bool']['must'].append({
                      "match": {
                         "_all": {
                             "query": query,
@@ -468,19 +479,10 @@ def elastic_search_ids(query, all_terms=False, min_date=None, max_date=None, nb_
                             "fuzziness": "AUTO",
                         },
                      },
-                 },
-                #{'match': {"attribution": {"query": 'Web Gallery of Art'}}}
-                ],
-            "must_not": {'match': {"title": {"query": 'detail'}}}
-             #"filter": ,
-             #"must_not": [{'match': {"title": {"query": 'detail'}}},
-                          #{'match': {"attribution": {"query": 'Fondazione Giorgio Cini'}}}
-             #             ]
-         }
-    }
-    if min_date is not None:
-        base_query['bool']['must'].append({"range": {"date_begin": {"lte": max_date}}})
+                 })
     if max_date is not None:
+        base_query['bool']['must'].append({"range": {"date_begin": {"lte": max_date}}})
+    if min_date is not None:
         base_query['bool']['must'].append({"range": {"date_end": {"gte": min_date}}})
     elastic_search_query = {
         "stored_fields": [],  # Do not return the fields, _id is enough
@@ -518,7 +520,7 @@ def elastic_search_ids(query, all_terms=False, min_date=None, max_date=None, nb_
 @api.route('/api/search/text')
 class SearchTextResource(Resource):
     parser = api.parser()
-    parser.add_argument('query', type=str, required=True)
+    parser.add_argument('query', type=str, default="")
     parser.add_argument('nb_results', type=int, default=40)
     parser.add_argument('all_terms', type=int, default=1)
     parser.add_argument('min_date', type=int)
@@ -570,7 +572,7 @@ class SearchImageResource(Resource):
                                      metadata.get('all_terms', True),
                                      metadata.get('min_date'),
                                      metadata.get('max_date'),
-                                     50000)
+                                     100000)
             filtered_uids = model.CHO.get_image_uids_from_ids(ids)
             del args['metadata']
             args['filtered_uids'] = filtered_uids
