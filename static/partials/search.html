@@ -88,6 +88,27 @@
                             </div>
                         </div>
                     </md-tab>
+                    <md-tab label="File">
+                        <div layout="row" layout-align="space-around center">
+                            <div flex="60">
+                                <form>
+                                  <input type='file' ng-model='$parent.$parent.externalImage' accept="image/jpeg" base-sixty-four-input>
+                                </form>
+                                <md-switch ng-model="$parent.$parent.filterImageSearchMetadata" aria-label="Filter the results with the metadata query">
+                                    Filter with metadata
+                                </md-switch>
+                            </div>
+                            <div>
+                                <md-progress-circular md-mode="indeterminate"
+                                                      ng-if="is_searching"></md-progress-circular>
+                                <md-button class="md-fab md-primary" aria-label="Search" ng-click="searchImageExternal()"
+                                           ng-disabled="!(externalImage.filesize > 0) || is_searching"
+                                           ng-if="!is_searching">
+                                    <md-icon class="material-icons">search</md-icon>
+                                </md-button>
+                            </div>
+                        </div>
+                    </md-tab>
                     <md-tab label="Options">
                         <div layout="column" layout-align="center">
                             <div layout="row">

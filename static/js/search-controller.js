@@ -18,6 +18,7 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
     $scope.filterSearchDuplicates = false;
     $scope.imageSearchRerank = true;
     $scope.totalSearched = 0;
+    $scope.externalImage = null;
     var resultsDisplayedInitial = 16;
     console.log($stateParams);
     if ($stateParams.q != null || $stateParams.n != null || $stateParams.image_url != null) {
@@ -156,6 +157,43 @@ replicaModule.controller('searchController', function ($scope, $http, $mdDialog,
 
                 $analytics.eventTrack('searchImage');
                 logEvent('search_image', request);
+            }
+        );
+    };
+    $scope.searchImageExternal = function () {
+        $scope.is_searching = true;
+        var positive_image_ids = [];
+        for (var i = 0; i < $scope.current_selection.length; i++)
+            positive_image_ids.push($scope.current_selection[i].images[0].uid);
+        var negative_image_ids = [];
+        for (i = 0; i < $scope.negative_selection.length; i++)
+            negative_image_ids.push($scope.negative_selection[i].images[0].uid);
+        var request = {
+            image_b64: $scope.externalImage.base64,
+            nb_results: $scope.nbResults,
+            rerank: $scope.imageSearchRerank,
+            filter_duplicates: $scope.filterSearchDuplicates
+        };
+        if ($scope.filterImageSearchMetadata) {
+            request.metadata = makeMetadataRequest();
+        }
+        $http.post(base_api_url+"/api/image/search_external", request).then(
+            function (response) {
+                $scope.results = response.data.results;
+                $scope.resultsDisplayed = resultsDisplayedInitial;
+                $scope.totalSearched = response.data.total;
+            }, function (response) {
+                $scope.showErrorToast("Search failed", response);
+            }
+        ).finally(
+            function () {
+                $scope.is_searching = false;
+                for (i = 0; i < $scope.current_selection.length; i++) {
+                    delete $scope.current_selection[i].images[0].box;
+                }
+
+                $analytics.eventTrack('searchImageExternal');
+                logEvent('search_image_external', request);
             }
         );
     };
