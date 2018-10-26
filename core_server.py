@@ -602,6 +602,58 @@ class SearchImageResource(Resource):
         return {'results': result_output, 'total': request_output['total']}
 
 
+@api.route('/api/image/search_external')
+class SearchImageExternalResource(Resource):
+    parser = api.parser()
+    parser.add_argument('image_b64', type=str, required=True, location='json', help="urlsafe b64 encoded version of the raw image file (JPG only)")
+    parser.add_argument('nb_results', type=int, default=100)
+    parser.add_argument('metadata', type=dict)
+    parser.add_argument('rerank', type=bool, default=False, location='json')
+    parser.add_argument('filter_duplicates', type=bool, default=False, location='json')
+
+    @api.marshal_with(model_image_search_region)
+    @api.expect(parser)
+    def post(self):
+        args = self.parser.parse_args()
+        nb_results = args['nb_results']
+        if args['filter_duplicates']:
+            args['nb_results'] = int(2.5*args['nb_results'])
+        if args.get('metadata'):
+            metadata = args['metadata']
+            ids, _ = elastic_search_ids(metadata.get('query', ''),
+                                     metadata.get('all_terms', True),
+                                     metadata.get('min_date'),
+                                     metadata.get('max_date'),
+                                     100000)
+            filtered_uids = model.CHO.get_image_uids_from_ids(ids)
+            del args['metadata']
+            args['filtered_uids'] = filtered_uids
+        try:
+            r = requests.post(app.config['REPLICA_SEARCH_URL'] + '/api/search_external', json=args)
+        except Exception as e:
+            raise BadRequest('Could not connect to search server')
+        if r.status_code != 200:
+            raise BadRequest('Bad answer from the search server : {}'.format(r.json().get('message')))
+        result_output = []
+        request_output = r.json()
+        result_output_raw = request_output['results']
+        # Filter duplicates
+        if args['filter_duplicates']:
+            image_uids = [r['uid'] for r in result_output_raw]
+            image_uids = set(model.utils.filter_duplicates_image_uids(image_uids))
+            result_output_raw = [r for r in result_output_raw if r['uid'] in image_uids]
+
+        chos = model.CHO.get_from_image_uids([r['uid'] for r in result_output_raw])
+        assert len(result_output_raw) == len(chos)
+        for result, cho in zip(result_output_raw, chos):
+            r = cho.to_dict()
+            if 'box' in result.keys():
+                r['images'][0]['box'] = result['box']
+            result_output.append(r)
+        result_output = result_output[:nb_results]
+        return {'results': result_output, 'total': request_output['total']}
+
+
 @api.route('/api/transition_gif/<string:uid1>/<string:uid2>')
 class TransitionGifResource(Resource):
     def get(self, uid1, uid2):
@@ -642,7 +694,7 @@ class DistanceMatrixResource(Resource):
 
 
 @api.route('/api/image/search_region')
-class SearchImageResource(Resource):
+class SearchImageRegionResource(Resource):
     parser = api.parser()
     parser.add_argument('image_uid', type=str, required=True, location='json')
     parser.add_argument('box_x', type=float, default=0.0, location='json')
