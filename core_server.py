@@ -525,7 +525,7 @@ class SearchTextResource(Resource):
     parser.add_argument('all_terms', type=int, default=1)
     parser.add_argument('min_date', type=int)
     parser.add_argument('max_date', type=int)
-    parser.add_argument('filter_duplicates', type=int, default=0)
+    parser.add_argument('filter_duplicates', type=int, default=1)
 
     @api.marshal_with(model_text_search)
     @api.expect(parser)
@@ -551,13 +551,15 @@ class SearchTextResource(Resource):
 @api.route('/api/image/search')
 class SearchImageResource(Resource):
     parser = api.parser()
-    parser.add_argument('positive_image_uids', type=list, required=True, location='json')
+    parser.add_argument('positive_image_uids', type=list, default=[], location='json')
     parser.add_argument('negative_image_uids', type=list, default=[], location='json')
+    parser.add_argument('positive_images_b64', type=list, default=[], location='json')
+    parser.add_argument('negative_images_b64', type=list, default=[], location='json')
     parser.add_argument('nb_results', type=int, default=100)
     parser.add_argument('index', type=str, location='json')
     parser.add_argument('metadata', type=dict)
     parser.add_argument('rerank', type=bool, default=False, location='json')
-    parser.add_argument('filter_duplicates', type=bool, default=False, location='json')
+    parser.add_argument('filter_duplicates', type=bool, default=True, location='json')
 
     @api.marshal_with(model_image_search_region)
     @api.expect(parser)
@@ -568,14 +570,15 @@ class SearchImageResource(Resource):
             args['nb_results'] = int(2.5*args['nb_results'])
         if args.get('metadata'):
             metadata = args['metadata']
-            ids, _ = elastic_search_ids(metadata.get('query', ''),
-                                     metadata.get('all_terms', True),
-                                     metadata.get('min_date'),
-                                     metadata.get('max_date'),
-                                     100000)
-            filtered_uids = model.CHO.get_image_uids_from_ids(ids)
+            if metadata.get('query', '') != '' or metadata.get('min_date') is not None or metadata.get('max_date') is not None:
+                ids, _ = elastic_search_ids(metadata.get('query', ''),
+                                         metadata.get('all_terms', True),
+                                         metadata.get('min_date'),
+                                         metadata.get('max_date'),
+                                         100000)
+                filtered_uids = model.CHO.get_image_uids_from_ids(ids)
+                args['filtered_uids'] = filtered_uids
             del args['metadata']
-            args['filtered_uids'] = filtered_uids
         try:
             r = requests.post(app.config['REPLICA_SEARCH_URL'] + '/api/search', json=args)
         except Exception as e:
@@ -609,7 +612,7 @@ class SearchImageExternalResource(Resource):
     parser.add_argument('nb_results', type=int, default=100)
     parser.add_argument('metadata', type=dict)
     parser.add_argument('rerank', type=bool, default=False, location='json')
-    parser.add_argument('filter_duplicates', type=bool, default=False, location='json')
+    parser.add_argument('filter_duplicates', type=bool, default=True, location='json')
 
     @api.marshal_with(model_image_search_region)
     @api.expect(parser)
@@ -704,7 +707,7 @@ class SearchImageRegionResource(Resource):
     parser.add_argument('nb_results', type=int, default=100)
     parser.add_argument('index', type=str, location='json')
     parser.add_argument('metadata', type=dict)
-    parser.add_argument('filter_duplicates', type=bool, default=False, location='json')
+    parser.add_argument('filter_duplicates', type=bool, default=True, location='json')
 
     @api.marshal_with(model_image_search_region)
     @api.expect(parser)
