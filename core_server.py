@@ -834,9 +834,10 @@ class GraphResource(Resource):
         data = self.parser.parse_args()['data']
         data['user_uid'] = current_user.username
         with _log_lock:
-            with open(app.config['LOG_FILE'], 'a') as f:
-                f.write(json.dumps(data))
-                f.write('\n')
+            if app.config['LOG_FILE'] is not None:
+                with open(app.config['LOG_FILE'], 'a') as f:
+                    f.write(json.dumps(data))
+                    f.write('\n')
 
 
 if __name__ == '__main__':
