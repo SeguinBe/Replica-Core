@@ -472,12 +472,11 @@ def elastic_search_ids(query=None, all_terms=False, min_date=None, max_date=None
     }
     if query is not None and query != "":
         base_query['bool']['must'].append({
-                     "match": {
-                        "_all": {
+                     "multi_match": {
                             "query": query,
                             "operator": "and" if all_terms else "or",
                             "fuzziness": "AUTO",
-                        },
+                            "fields": [ "author", "title" ]
                      },
                  })
     if max_date is not None:
